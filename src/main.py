@@ -27,6 +27,6 @@ if __name__ == "__main__":
         tgb.number("{d_count}", on_change=update_chart)
         tgb.slider("{d_sides}",  lov=[2, 4, 6, 8, 10, 12, 20, 100], on_change=update_chart)
 
-        tgb.chart(data="{d_prob}", type="bar")
+        tgb.chart(data="{d_prob}", x="x", y="y", type="bar")
 
     Gui(page).run(debug=True)

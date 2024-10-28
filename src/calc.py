@@ -3,7 +3,11 @@ import numpy as np
 
 # TODO make this more efficient by convolving together conv-exponent powers of 2
 def kdn(k: int, n: int):
-    return _take_index_n(_kdn_iter(n), k).tolist()
+    y = _take_index_n(_kdn_iter(n), k).tolist()
+    return dict(
+        x=(np.arange(len(y) - k) + k).tolist(),
+        y=y[k:]
+    )
 
 def _kdn_iter(n: int):
     dist_kdn = _0dn()

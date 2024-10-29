@@ -8,7 +8,7 @@ def add_bias(labeled_dist, bias: int):
 
 def kdn(k: int, n: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
-    dist = _take_index_n(_kdn_iter(n), k)
+    dist = _take_index_n(_kdn_iter(n), k) / (n ** k)
     dist_wo_leading_zeros = dist[k:]
     labeled_dist = _to_labeled(dist_wo_leading_zeros)
     labeled_dist["x"] += k
@@ -31,7 +31,7 @@ def _kdn_iter(n: int):
 
 
 def _1dn(n: int):
-    result = np.full(n + 1, fill_value=1 / n)
+    result = np.full(n + 1, fill_value=1)
     result[0] = 0
     return result
 

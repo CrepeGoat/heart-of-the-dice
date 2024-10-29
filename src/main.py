@@ -8,7 +8,7 @@ import calc
 # - heterogeneous dice
 # - multiplicative factors (e.g., double)
 def make_prob(d_count, d_sides, d_bias):
-    return calc.kdn_plusb(d_count, d_sides, d_bias)
+    return calc.add_bias(calc.kdn(d_count, d_sides), d_bias)
 
 def update_chart(state):
     state.d_prob = make_prob(int(state.d_count), int(state.d_sides), int(state.d_bias))

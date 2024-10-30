@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Definition of the page
     with tgb.Page() as page:
-        tgb.text("# Getting started with Taipy GUI", mode="md")
+        tgb.text("# D&D Dice Calculator", mode="md")
         tgb.text("{int(d_count)}d{d_sides} + {int(d_bias)} drop {drop}")
         tgb.number("{d_count}", on_change=update_chart)
         tgb.slider(

@@ -9,12 +9,29 @@ import calc
 
 @dataclass(kw_only=True, slots=True)
 class DiceStruct(object):
-    count: int
-    sides: int
+    _count: int
+    _sides: int
     drop: Literal["low", "none", "high"]
 
     def default():
-        return DiceStruct(count=1, sides=6, drop="none")
+        return DiceStruct(_count=1, _sides=6, drop="none")
+
+    # UI stores numbers as floats -> auto-convert them to ints
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, value):
+        self._count = int(value)
+    
+    @property
+    def sides(self):
+        return self._sides
+
+    @sides.setter
+    def sides(self, value):
+        self._sides = int(value)
 
 
 def make_dice_controls(tgb):
@@ -43,7 +60,7 @@ def calc_prob(d_count, d_sides, d_bias, drop):
 
 def update_chart(state):
     state.d_prob = calc_prob(
-        int(state.die.count), int(state.die.sides), int(state.d_bias), state.die.drop
+        state.die.count, state.die.sides, int(state.d_bias), state.die.drop
     )
 
 

@@ -59,3 +59,11 @@ class TestSequenceWithOffset:
         result = seq1.consolidate(seq2)
         assert np.all(result.seq == [1, 2, 3, 504, 600, 700])
         assert result.offset == -1
+
+    def test_consolidate_zero_len(self):
+        seq1 = calc.SequenceWithOffset(seq=np.array([1, 2, 3, 4]), offset=-1)
+        seq2 = calc.SequenceWithOffset(seq=np.array([]), offset=2)
+
+        result = seq1.consolidate(seq2)
+        assert np.all(result.seq == seq1.seq)
+        assert result.offset == seq1.offset

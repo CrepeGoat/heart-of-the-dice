@@ -31,6 +31,10 @@ class SequenceWithOffset:
         return SequenceWithOffset(seq=seq, offset=self.offset + other.offset)
 
     def consolidate(self, other: SequenceWithOffset) -> SequenceWithOffset:
+        if len(self.seq) == 0:
+            return other.copy()
+        elif len(other.seq) == 0:
+            return self.copy()
         index_low = min(self.offset, other.offset)
         index_high = max(self._index_end(), other._index_end())
 
@@ -45,6 +49,9 @@ class SequenceWithOffset:
 
     def __mul__(self, value):
         return SequenceWithOffset(seq=self.seq * value, offset=self.offset)
+
+    def copy(self):
+        return SequenceWithOffset(seq=np.copy(self.seq), offset=self.offset)
 
     def to_labeled(self):
         return dict(
@@ -75,7 +82,6 @@ def _kdn_drophigh(k: int, n: int):
             kdn_cache[n_fixed - 1][k - j].bias_by((j - 1) * n_fixed) * math.comb(k, j)
             for j in range(1, k + 1)  # j - the number of fixed dice
             for n_fixed in range(1, n + 1)  # n_fixed - the value for fixed dice
-            if np.any(kdn_cache[n_fixed - 1][k - j].seq != 0)
         ),
     )
 

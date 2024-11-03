@@ -67,21 +67,30 @@ def kdn_droplow(k: int, n: int):
 
 
 def kdn_drophigh(k: int, n: int):
-    dist = _kdn_drophigh(k, n)
+    dist = _roll_k_drophigh(_roll_1dn(n), k)
     dist.seq /= n**k
     labeled_dist = dist.to_labeled()
     return labeled_dist
 
 
-def _kdn_drophigh(k: int, n: int):
-    kdn_cache = [[x for (_, x) in zip(range(k), _roll_k_iter(_roll_1dn(m)))] for m in range(n)]
+def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
+    roll_1_prefices = [
+        SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
+        for n in range(len(roll_1.seq))
+    ]
+    kdn_cache = [
+        [x for (_, x) in zip(range(k), _roll_k_iter(roll_1_prefix))]
+        for roll_1_prefix in roll_1_prefices
+    ]
 
     return functools.reduce(
         SequenceWithOffset.consolidate,
         (
             kdn_cache[n_fixed - 1][k - j].bias_by((j - 1) * n_fixed) * math.comb(k, j)
             for j in range(1, k + 1)  # j - the number of fixed dice
-            for n_fixed in range(1, n + 1)  # n_fixed - the value for fixed dice
+            for n_fixed in range(
+                roll_1.offset, roll_1._index_end()
+            )  # n_fixed - the value for fixed dice
         ),
     )
 

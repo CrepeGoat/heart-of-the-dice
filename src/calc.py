@@ -23,9 +23,12 @@ class SequenceWithOffset:
         return self.offset + len(self.seq)
 
     def convolve(self, other: SequenceWithOffset) -> SequenceWithOffset:
-        return SequenceWithOffset(
-            seq=np.convolve(self.seq, other.seq), offset=self.offset + other.offset
-        )
+        if len(self.seq) == 0 or len(other.seq) == 0:
+            # make a zero-length array with the correct dtype
+            seq = self.seq[:0] + other.seq[:0]
+        else:
+            seq = np.convolve(self.seq, other.seq)
+        return SequenceWithOffset(seq=seq, offset=self.offset + other.offset)
 
     def consolidate(self, other: SequenceWithOffset) -> SequenceWithOffset:
         index_low = min(self.offset, other.offset)
@@ -99,7 +102,7 @@ def _roll_k_iter(roll_1: SequenceWithOffset):
 
 def _roll_1dn(n: int):
     if n == 0:
-        return SequenceWithOffset(seq=np.zeros(1), offset=0)
+        return SequenceWithOffset(seq=np.zeros(0), offset=0)
     return SequenceWithOffset(seq=np.full(n, fill_value=1), offset=1)
 
 

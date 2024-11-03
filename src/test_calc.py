@@ -37,6 +37,13 @@ def test_4d6_droplow():
 
 
 class TestSequenceWithOffset:
+    def test_convolve_zero_len(self):
+        seq1 = calc.SequenceWithOffset(seq=np.array([]), offset=-3)
+        seq2 = calc.SequenceWithOffset(seq=np.array([1, 2, 3]), offset=2)
+        result = seq1.convolve(seq2)
+        assert np.all(result.seq == [])
+        # offset is arbitrary -> don't test
+
     def test_consolidate_no_overlap(self):
         seq1 = calc.SequenceWithOffset(seq=np.array([1, 2, 3, 4]), offset=-3)
         seq2 = calc.SequenceWithOffset(seq=np.array([500, 600, 700]), offset=2)

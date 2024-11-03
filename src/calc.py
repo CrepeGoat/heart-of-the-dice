@@ -64,7 +64,7 @@ def kdn_drophigh(k: int, n: int):
 
 
 def _kdn_drophigh(k: int, n: int):
-    kdn_cache = [[x for (_, x) in zip(range(k), _dn_iter(m))] for m in range(n)]
+    kdn_cache = [[x for (_, x) in zip(range(k), _roll_k_iter(_roll_1dn(m)))] for m in range(n)]
 
     return functools.reduce(
         SequenceWithOffset.consolidate,
@@ -85,26 +85,25 @@ def add_bias(labeled_dist, bias: int):
 
 def kdn(k: int, n: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
-    dist = _take_index_n(_dn_iter(n), k)
+    dist = _take_index_n(_roll_k_iter(_roll_1dn(n)), k)
     dist.seq /= n**k
     return dist.to_labeled()
 
 
-def _dn_iter(n: int):
-    dist_kdn = _0dn()
-    dist_1dn = _1dn(n)
+def _roll_k_iter(roll_1: SequenceWithOffset):
+    roll_k = _roll_0()
     while True:
-        yield dist_kdn
-        dist_kdn = dist_kdn.convolve(dist_1dn)
+        yield roll_k
+        roll_k = roll_k.convolve(roll_1)
 
 
-def _1dn(n: int):
+def _roll_1dn(n: int):
     if n == 0:
         return SequenceWithOffset(seq=np.zeros(1), offset=0)
     return SequenceWithOffset(seq=np.full(n, fill_value=1), offset=1)
 
 
-def _0dn():
+def _roll_0():
     return SequenceWithOffset(seq=np.ones(1), offset=0)
 
 

@@ -62,15 +62,14 @@ class SequenceWithOffset:
 
 def kdn_droplow(k: int, n: int):
     result = kdn_drophigh(k, n)
-    result["y"] = np.flip(result["y"])
+    result.seq = np.flip(result.seq)
     return result
 
 
 def kdn_drophigh(k: int, n: int):
     dist = _roll_k_drophigh(_roll_1dn(n), k)
     dist.seq /= n**k
-    labeled_dist = dist.to_labeled()
-    return labeled_dist
+    return dist
 
 
 def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
@@ -95,17 +94,11 @@ def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
     )
 
 
-# TODO redundant with `SequenceWithOffset.bias_by` -> remove
-def add_bias(labeled_dist, bias: int):
-    labeled_dist["x"] += bias
-    return labeled_dist
-
-
 def kdn(k: int, n: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
     dist = _take_index_n(_roll_k_iter(_roll_1dn(n)), k)
     dist.seq /= n**k
-    return dist.to_labeled()
+    return dist
 
 
 def _roll_k_iter(roll_1: SequenceWithOffset):

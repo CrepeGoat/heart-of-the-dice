@@ -24,7 +24,7 @@ class DiceStruct(object):
     @count.setter
     def count(self, value):
         self._count = int(value)
-    
+
     @property
     def sides(self):
         return self._sides

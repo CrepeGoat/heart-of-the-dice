@@ -1,7 +1,53 @@
+from __future__ import annotations
+
 import math
 import functools
+from dataclasses import dataclass
 
 import numpy as np
+
+
+@dataclass(slots=True, kw_only=True)
+class SequenceWithOffset:
+    """
+    A sequence of numbers, offset from zero by a set amount.
+
+    The offset avoids having to manually offset data by explicitly storing zeros
+    in the arrays, and also allows arrays to start before zero.
+    """
+
+    seq: np.array
+    offset: int
+
+    def _index_end(self):
+        return self.offset + len(self.seq)
+
+    def convolve(self, other: SequenceWithOffset) -> SequenceWithOffset:
+        return SequenceWithOffset(
+            seq=np.convolve(self.seq, other.seq), offset=self.offset + other.offset
+        )
+
+    def consolidate(self, other: SequenceWithOffset) -> SequenceWithOffset:
+        index_low = min(self.offset, other.offset)
+        index_high = max(self._index_end(), other._index_end())
+
+        seq = np.zeros(index_high - index_low)
+        seq[self.offset - index_low : self._index_end() - index_low] = self.seq
+        seq[other.offset - index_low : other._index_end() - index_low] += other.seq
+
+        return SequenceWithOffset(seq=seq, offset=index_low)
+
+    def bias_by(self, bias: int):
+        return SequenceWithOffset(seq=np.copy(self.seq), offset=self.offset + bias)
+
+    def __mul__(self, value):
+        return SequenceWithOffset(seq=self.seq * value, offset=self.offset)
+
+    def to_labeled(self):
+        return dict(
+            x=np.arange(self.offset, self._index_end()),
+            y=self.seq.tolist(),
+        )
 
 
 def kdn_droplow(k: int, n: int):
@@ -11,10 +57,9 @@ def kdn_droplow(k: int, n: int):
 
 
 def kdn_drophigh(k: int, n: int):
-    dist = _kdn_drophigh(k, n) / (n**k)
-    dist_wo_leading_zeros = dist[k - 1 :]
-    labeled_dist = _to_labeled(dist_wo_leading_zeros)
-    labeled_dist["x"] += k - 1
+    dist = _kdn_drophigh(k, n)
+    dist.seq /= n**k
+    labeled_dist = dist.to_labeled()
     return labeled_dist
 
 
@@ -22,17 +67,17 @@ def _kdn_drophigh(k: int, n: int):
     kdn_cache = [[x for (_, x) in zip(range(k), _dn_iter(m))] for m in range(n)]
 
     return functools.reduce(
-        _add_raw,
+        SequenceWithOffset.consolidate,
         (
-            _add_bias_raw(kdn_cache[n_fixed - 1][k - j], (j - 1) * n_fixed)
-            * math.comb(k, j)
+            kdn_cache[n_fixed - 1][k - j].bias_by((j - 1) * n_fixed) * math.comb(k, j)
             for j in range(1, k + 1)  # j - the number of fixed dice
             for n_fixed in range(1, n + 1)  # n_fixed - the value for fixed dice
+            if np.any(kdn_cache[n_fixed - 1][k - j].seq != 0)
         ),
-        np.zeros(0),
     )
 
 
+# TODO redundant with `SequenceWithOffset.bias_by` -> remove
 def add_bias(labeled_dist, bias: int):
     labeled_dist["x"] += bias
     return labeled_dist
@@ -40,32 +85,9 @@ def add_bias(labeled_dist, bias: int):
 
 def kdn(k: int, n: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
-    dist = _take_index_n(_dn_iter(n), k) / (n**k)
-    dist_wo_leading_zeros = dist[k:]
-    labeled_dist = _to_labeled(dist_wo_leading_zeros)
-    labeled_dist["x"] += k
-    return labeled_dist
-
-
-def _to_labeled(array: np.array):
-    return dict(
-        x=np.arange(len(array)),
-        y=array.tolist(),
-    )
-
-
-def _add_bias_raw(dist, bias: int):
-    return np.pad(dist, (bias, 0))
-
-
-def _add_raw(dist1, dist2):
-    if len(dist1) > len(dist2):
-        dist1, dist2 = dist2, dist1
-
-    len_diff = len(dist2) - len(dist1)
-    assert len_diff >= 0
-
-    return dist2 + np.pad(dist1, (0, len_diff))
+    dist = _take_index_n(_dn_iter(n), k)
+    dist.seq /= n**k
+    return dist.to_labeled()
 
 
 def _dn_iter(n: int):
@@ -73,19 +95,17 @@ def _dn_iter(n: int):
     dist_1dn = _1dn(n)
     while True:
         yield dist_kdn
-        dist_kdn = np.convolve(dist_kdn, dist_1dn)
+        dist_kdn = dist_kdn.convolve(dist_1dn)
 
 
 def _1dn(n: int):
     if n == 0:
-        return np.zeros(1)
-    result = np.full(n + 1, fill_value=1)
-    result[0] = 0
-    return result
+        return SequenceWithOffset(seq=np.zeros(1), offset=0)
+    return SequenceWithOffset(seq=np.full(n, fill_value=1), offset=1)
 
 
 def _0dn():
-    return np.ones(1)
+    return SequenceWithOffset(seq=np.ones(1), offset=0)
 
 
 def _take_index_n(iter, n: int):

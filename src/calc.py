@@ -70,8 +70,16 @@ class SequenceWithOffset:
 
 
 def kdn_droplow(k: int, n: int):
-    result = kdn_drophigh(k, n)
+    return _roll_k_droplow(_roll_1dn(n), k).scaled_to_prob()
+
+
+def _roll_k_droplow(roll_1: SequenceWithOffset, k: int):
+    roll_1.seq = np.flip(roll_1.seq)
+    result = _roll_k_drophigh(roll_1, k)
+
+    roll_1.seq = np.flip(roll_1.seq)
     result.seq = np.flip(result.seq)
+
     return result
 
 

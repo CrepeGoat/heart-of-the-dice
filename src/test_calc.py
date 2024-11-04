@@ -6,22 +6,61 @@ import numpy as np
 from . import calc
 
 
-@given(st.integers(min_value=0, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_sum_n_exp_k(k, n):
-    result = calc.roll_k(calc.roll_1dn(n), k)
-    assert sum(result.seq) == pytest.approx(n**k)
+# Custom test strategies for SequenceWithOffset
 
 
-@given(st.integers(min_value=1, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_droplow_sum_n_exp_k(k, n):
-    result = calc.roll_k_droplow(calc.roll_1dn(n), k)
-    assert sum(result.seq) == pytest.approx(n**k)
+@st.composite
+def st_sequence_with_offset(
+    draw, st_values, len_min=0, len_max=None, offset_min=None, offset_max=None
+):
+    st_offset = st.integers(min_value=offset_min, max_value=offset_max)
+    st_values = st.lists(st_values, min_size=len_min, max_size=len_max).filter(
+        lambda x: len(x) == 0 or (x[0] != 0 and x[-1] != 0)
+    )
+
+    return calc.SequenceWithOffset(
+        seq=np.array(draw(st_values), dtype=np.int64), offset=draw(st_offset)
+    )
 
 
-@given(st.integers(min_value=1, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_drophigh_sum_n_exp_k(k, n):
-    result = calc.roll_k_drophigh(calc.roll_1dn(n), k)
-    assert sum(result.seq) == pytest.approx(n**k)
+@st.composite
+def st_default_sequence_with_offset(draw):
+    return draw(
+        st_sequence_with_offset(
+            st_values=st.integers(min_value=0, max_value=5),
+            len_min=1,
+            len_max=7,
+            offset_min=-3,
+            offset_max=3,
+        )
+    )
+
+
+@given(
+    st_default_sequence_with_offset(),
+    st.integers(min_value=0, max_value=4),
+)
+def test_roll_k_sum(roll_1, k):
+    result = calc.roll_k(roll_1, k)
+    assert result.seq.sum() == roll_1.seq.sum() ** k
+
+
+@given(
+    st_default_sequence_with_offset(),
+    st.integers(min_value=1, max_value=4),
+)
+def test_roll_k_droplow_sum(roll_1, k):
+    result = calc.roll_k_droplow(roll_1, k)
+    assert result.seq.sum() == roll_1.seq.sum() ** k
+
+
+@given(
+    st_default_sequence_with_offset(),
+    st.integers(min_value=1, max_value=4),
+)
+def test_roll_k_drophigh_sum(roll_1, k):
+    result = calc.roll_k_drophigh(roll_1, k)
+    assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
 def test_4d6_droplow():

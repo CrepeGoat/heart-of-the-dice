@@ -92,11 +92,13 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
     return functools.reduce(
         SequenceWithOffset.consolidate,
         (
-            kdn_cache[n_fixed - 1][k - j].bias_by((j - 1) * n_fixed) * math.comb(k, j)
+            kdn_cache[i_fixed][k - j].bias_by((j - 1) * (i_fixed + roll_1.offset))
+            * math.comb(k, j)
+            * (roll_1.seq[i_fixed] ** j)
             for j in range(1, k + 1)  # j - the number of fixed dice
-            for n_fixed in range(
-                roll_1.offset, roll_1._index_end()
-            )  # n_fixed - the value for fixed dice
+            for i_fixed in range(
+                roll_1._index_end() - roll_1.offset
+            )  # i_fixed - the index for the value of fixed dice
         ),
     )
 

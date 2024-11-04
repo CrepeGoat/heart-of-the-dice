@@ -116,8 +116,6 @@ def _roll_k_iter(roll_1: SequenceWithOffset):
 
 
 def roll_1dn(n: int):
-    if n == 0:
-        return SequenceWithOffset(seq=np.zeros(0, dtype=np.int64), offset=0)
     return SequenceWithOffset(seq=np.full(n, fill_value=1, dtype=np.int64), offset=1)
 
 

@@ -59,6 +59,15 @@ class SequenceWithOffset:
             y=self.seq.tolist(),
         )
 
+    def scaled_to_prob(self):
+        """
+        Makes a copy of this sequence that is scaled s.t. it sums to 1 like a
+        probability distribution.
+        """
+        if np.all(self.seq == 0):
+            raise ValueError("cannot scale array of zeros s.t. it sums to 1")
+        return SequenceWithOffset(seq=self.seq / self.seq.sum(), offset=self.offset)
+
 
 def kdn_droplow(k: int, n: int):
     result = kdn_drophigh(k, n)
@@ -67,9 +76,7 @@ def kdn_droplow(k: int, n: int):
 
 
 def kdn_drophigh(k: int, n: int):
-    dist = _roll_k_drophigh(_roll_1dn(n), k)
-    dist.seq /= n**k
-    return dist
+    return _roll_k_drophigh(_roll_1dn(n), k).scaled_to_prob()
 
 
 def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):

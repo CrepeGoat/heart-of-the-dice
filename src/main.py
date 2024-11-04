@@ -55,7 +55,7 @@ def calc_prob(d_count, d_sides, d_bias, drop):
     else:
         dist = calc.kdn(d_count, d_sides)
 
-    return dist.bias_by(d_bias).to_labeled()
+    return dist.bias_by(d_bias).scaled_to_prob().to_labeled()
 
 
 def update_chart(state):

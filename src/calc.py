@@ -70,7 +70,7 @@ class SequenceWithOffset:
 
 
 def kdn_droplow(k: int, n: int):
-    return _roll_k_droplow(_roll_1dn(n), k).scaled_to_prob()
+    return _roll_k_droplow(_roll_1dn(n), k)
 
 
 def _roll_k_droplow(roll_1: SequenceWithOffset, k: int):
@@ -84,7 +84,7 @@ def _roll_k_droplow(roll_1: SequenceWithOffset, k: int):
 
 
 def kdn_drophigh(k: int, n: int):
-    return _roll_k_drophigh(_roll_1dn(n), k).scaled_to_prob()
+    return _roll_k_drophigh(_roll_1dn(n), k)
 
 
 def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
@@ -111,9 +111,7 @@ def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
 
 def kdn(k: int, n: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
-    dist = _take_index_n(_roll_k_iter(_roll_1dn(n)), k)
-    dist.seq /= n**k
-    return dist
+    return _take_index_n(_roll_k_iter(_roll_1dn(n)), k)
 
 
 def _roll_k_iter(roll_1: SequenceWithOffset):

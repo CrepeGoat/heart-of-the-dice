@@ -7,32 +7,31 @@ from . import calc
 
 
 @given(st.integers(min_value=0, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_sum1(k, n):
+def test_kdn_sum_n_exp_k(k, n):
     result = calc.kdn(k, n)
-    assert sum(result.seq) == pytest.approx(1)
+    assert sum(result.seq) == pytest.approx(n**k)
 
 
 @given(st.integers(min_value=1, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_droplow_sum1(k, n):
+def test_kdn_droplow_sum_n_exp_k(k, n):
     result = calc.kdn_droplow(k, n)
-    assert sum(result.seq) == pytest.approx(1)
+    assert sum(result.seq) == pytest.approx(n**k)
 
 
 @given(st.integers(min_value=1, max_value=4), st.integers(min_value=2, max_value=8))
-def test_kdn_drophigh_sum1(k, n):
+def test_kdn_drophigh_sum_n_exp_k(k, n):
     result = calc.kdn_drophigh(k, n)
-    assert sum(result.seq) == pytest.approx(1)
+    assert sum(result.seq) == pytest.approx(n**k)
 
 
 def test_4d6_droplow():
     result = calc.kdn_droplow(4, 6)
     assert result.offset == 3
 
-    total_outcomes = 6**4
-    assert result.seq[0] == pytest.approx(1 / total_outcomes)
-    assert result.seq[1] == pytest.approx(4 / total_outcomes)
-    assert result.seq[2] == pytest.approx(10 / total_outcomes)
-    assert result.seq[-1] == pytest.approx(21 / total_outcomes)
+    assert result.seq[0] == pytest.approx(1)
+    assert result.seq[1] == pytest.approx(4)
+    assert result.seq[2] == pytest.approx(10)
+    assert result.seq[-1] == pytest.approx(21)
 
 
 class TestSequenceWithOffset:

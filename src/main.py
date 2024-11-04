@@ -48,12 +48,13 @@ def make_dice_controls(tgb):
 # - heterogeneous dice
 # - multiplicative factors (e.g., double)
 def calc_prob(d_count, d_sides, d_bias, drop):
+    dist1 = calc.roll_1dn(d_sides)
     if drop == "high":
-        dist = calc.kdn_drophigh(d_count, d_sides)
+        dist = calc.roll_k_drophigh(dist1, d_count)
     elif drop == "low":
-        dist = calc.kdn_droplow(d_count, d_sides)
+        dist = calc.roll_k_droplow(dist1, d_count)
     else:
-        dist = calc.kdn(d_count, d_sides)
+        dist = calc.roll_k(dist1, d_count)
 
     return dist.bias_by(d_bias).scaled_to_prob().to_labeled()
 

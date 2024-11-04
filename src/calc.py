@@ -69,13 +69,9 @@ class SequenceWithOffset:
         return SequenceWithOffset(seq=self.seq / self.seq.sum(), offset=self.offset)
 
 
-def kdn_droplow(k: int, n: int):
-    return _roll_k_droplow(_roll_1dn(n), k)
-
-
-def _roll_k_droplow(roll_1: SequenceWithOffset, k: int):
+def roll_k_droplow(roll_1: SequenceWithOffset, k: int):
     roll_1.seq = np.flip(roll_1.seq)
-    result = _roll_k_drophigh(roll_1, k)
+    result = roll_k_drophigh(roll_1, k)
 
     roll_1.seq = np.flip(roll_1.seq)
     result.seq = np.flip(result.seq)
@@ -83,11 +79,7 @@ def _roll_k_droplow(roll_1: SequenceWithOffset, k: int):
     return result
 
 
-def kdn_drophigh(k: int, n: int):
-    return _roll_k_drophigh(_roll_1dn(n), k)
-
-
-def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
+def roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
     roll_1_prefices = [
         SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
         for n in range(len(roll_1.seq))
@@ -109,25 +101,25 @@ def _roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
     )
 
 
-def kdn(k: int, n: int):
+def roll_k(roll_1: SequenceWithOffset, k: int):
     # TODO make this more efficient by convolving together conv-exponent powers of 2
-    return _take_index_n(_roll_k_iter(_roll_1dn(n)), k)
+    return _take_index_n(_roll_k_iter(roll_1), k)
 
 
 def _roll_k_iter(roll_1: SequenceWithOffset):
-    roll_k = _roll_0()
+    roll_k = roll_0()
     while True:
         yield roll_k
         roll_k = roll_k.convolve(roll_1)
 
 
-def _roll_1dn(n: int):
+def roll_1dn(n: int):
     if n == 0:
         return SequenceWithOffset(seq=np.zeros(0), offset=0)
     return SequenceWithOffset(seq=np.full(n, fill_value=1), offset=1)
 
 
-def _roll_0():
+def roll_0():
     return SequenceWithOffset(seq=np.ones(1), offset=0)
 
 

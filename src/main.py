@@ -37,7 +37,7 @@ class DiceStruct(object):
 def make_dice_controls(tgb):
     tgb.text("{int(die.count)}d{die.sides} drop {die.drop}")
     with tgb.layout(columns="1 1 1"):
-        tgb.number("{die.count}", on_change=update_chart)
+        tgb.number("{die.count}", min=0, on_change=update_chart)
         tgb.slider(
             "{die.sides}", lov=[2, 4, 6, 8, 10, 12, 20, 100], on_change=update_chart
         )

@@ -69,9 +69,9 @@ class SequenceWithOffset:
         return SequenceWithOffset(seq=self.seq / self.seq.sum(), offset=self.offset)
 
 
-def roll_k_droplow(roll_1: SequenceWithOffset, k: int):
+def roll_k_droplow(roll_1: SequenceWithOffset, k: int, drop: int):
     roll_1.seq = np.flip(roll_1.seq)
-    result = roll_k_drophigh(roll_1, k)
+    result = roll_k_drophigh(roll_1, k, drop)
 
     roll_1.seq = np.flip(roll_1.seq)
     result.seq = np.flip(result.seq)
@@ -79,7 +79,8 @@ def roll_k_droplow(roll_1: SequenceWithOffset, k: int):
     return result
 
 
-def roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
+def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
+    assert drop > 0
     roll_1_prefices = [
         SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
         for n in range(len(roll_1.seq))
@@ -89,18 +90,27 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int):
         for roll_1_prefix in roll_1_prefices
     ]
 
-    return functools.reduce(
-        SequenceWithOffset.consolidate,
-        (
-            kdn_cache[i_fixed][k - j].bias_by((j - 1) * (i_fixed + roll_1.offset))
-            * math.comb(k, j)
-            * (roll_1.seq[i_fixed] ** j)
-            for j in range(1, k + 1)  # j - the number of fixed dice
-            for i_fixed in range(
-                roll_1._index_end() - roll_1.offset
-            )  # i_fixed - the index for the value of fixed dice
-        ),
-    )
+    def inner(nsub: int, ksub: int, dsub: int):
+        if dsub == 0:
+            return kdn_cache[nsub][ksub]
+
+        return functools.reduce(
+            SequenceWithOffset.consolidate,
+            (
+                inner(i_fixed, ksub - j, max(dsub - j, 0)).bias_by(
+                    max(j - dsub, 0) * (i_fixed + roll_1.offset)
+                )
+                * math.comb(ksub, j)
+                * (roll_1.seq[i_fixed] ** j)
+                for j in range(1, ksub + 1)  # j - the number of fixed dice
+                for i_fixed in range(
+                    nsub
+                )  # i_fixed - the index for the value of fixed dice
+            ),
+            roll_1dn(0),
+        )
+
+    return inner(nsub=len(roll_1.seq), ksub=k, dsub=drop)
 
 
 def roll_k(roll_1: SequenceWithOffset, k: int):

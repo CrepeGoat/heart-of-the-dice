@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from . import calc
@@ -46,24 +46,40 @@ def test_roll_k_sum(roll_1, k):
 
 @given(
     st_default_sequence_with_offset(),
-    st.integers(min_value=1, max_value=4),
+    st.integers(min_value=1, max_value=5),
+    st.integers(min_value=1, max_value=3),
 )
-def test_roll_k_droplow_sum(roll_1, k):
-    result = calc.roll_k_droplow(roll_1, k)
+def test_roll_k_droplow_sum(roll_1, k, drop):
+    assume(drop <= k)
+    result = calc.roll_k_droplow(roll_1, k, drop)
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
 @given(
     st_default_sequence_with_offset(),
-    st.integers(min_value=1, max_value=4),
+    st.integers(min_value=1, max_value=5),
+    st.integers(min_value=1, max_value=3),
 )
-def test_roll_k_drophigh_sum(roll_1, k):
-    result = calc.roll_k_drophigh(roll_1, k)
+def test_roll_k_drophigh_sum(roll_1, k, drop):
+    assume(drop <= k)
+    result = calc.roll_k_drophigh(roll_1, k, drop)
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
+@given(
+    st.integers(min_value=1, max_value=10),
+)
+def test_d2_roll_k_droplow_all_but_1(drop):
+    roll_1 = calc.roll_1dn(2)
+    k = drop + 1
+
+    result = calc.roll_k_droplow(roll_1, k, drop)
+    assert np.all(result.seq == [1, 2**k - 1])
+    assert result.offset == 1
+
+
 def test_4d6_droplow():
-    result = calc.roll_k_droplow(calc.roll_1dn(6), 4)
+    result = calc.roll_k_droplow(calc.roll_1dn(6), 4, 1)
     assert result.offset == 3
 
     assert result.seq[0] == pytest.approx(1)

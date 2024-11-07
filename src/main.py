@@ -50,9 +50,9 @@ def make_dice_controls(tgb):
 def calc_prob(d_count, d_sides, d_bias, drop):
     dist1 = calc.roll_1dn(d_sides)
     if drop == "high":
-        dist = calc.roll_k_drophigh(dist1, d_count)
+        dist = calc.roll_k_drophigh(dist1, d_count, 1)
     elif drop == "low":
-        dist = calc.roll_k_droplow(dist1, d_count)
+        dist = calc.roll_k_droplow(dist1, d_count, 1)
     else:
         dist = calc.roll_k(dist1, d_count)
 

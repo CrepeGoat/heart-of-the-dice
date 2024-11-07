@@ -86,7 +86,7 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
         for n in range(len(roll_1.seq))
     ]
     kdn_cache = [
-        [x for (_, x) in zip(range(k), _roll_k_iter(roll_1_prefix))]
+        _take_first_n(_roll_k_iter(roll_1_prefix), k)
         for roll_1_prefix in roll_1_prefices
     ]
 
@@ -137,3 +137,7 @@ def _take_index_n(iter, n: int):
     for _ in range(n):
         next(iter)
     return next(iter)
+
+
+def _take_first_n(iter, n: int):
+    return [x for (_, x) in zip(range(n), iter)]

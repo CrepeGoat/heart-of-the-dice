@@ -60,6 +60,13 @@ if __name__ == "__main__":
     d_bias = 0
     d_prob = calc_prob(die.count, die.sides, d_bias, die.drop)
 
+    chart_properties = dict(
+        layout=dict(
+            xaxis=dict(title="dice outcome"),
+            yaxis=dict(title="probability (per whole)"),
+        )
+    )
+
     # Definition of the page
     with tgb.Page() as page:
         tgb.text("# D&D Dice Calculator", mode="md")
@@ -83,6 +90,8 @@ if __name__ == "__main__":
             "## -> {int(die.count)}d{die.sides} drop {die.drop} + {int(d_bias)}",
             mode="md",
         )
-        tgb.chart(data="{d_prob}", x="x", y="y", type="bar")
+        tgb.chart(
+            data="{d_prob}", x="x", y="y", type="bar", properties="{chart_properties}"
+        )
 
     Gui(page).run(debug=True)

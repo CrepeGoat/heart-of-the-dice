@@ -34,16 +34,6 @@ class DiceStruct(object):
         self._sides = int(value)
 
 
-def make_dice_controls(tgb):
-    tgb.text("{int(die.count)}d{die.sides} drop {die.drop}")
-    with tgb.layout(columns="1 1 1"):
-        tgb.number("{die.count}", min=0, on_change=update_chart)
-        tgb.slider(
-            "{die.sides}", lov=[2, 4, 6, 8, 10, 12, 20, 100], on_change=update_chart
-        )
-        tgb.toggle("{die.drop}", lov=["low", "none", "high"], on_change=update_chart)
-
-
 # TODO allow for:
 # - heterogeneous dice
 # - multiplicative factors (e.g., double)
@@ -73,11 +63,26 @@ if __name__ == "__main__":
     # Definition of the page
     with tgb.Page() as page:
         tgb.text("# D&D Dice Calculator", mode="md")
-        make_dice_controls(tgb)
 
-        tgb.text("+ {int(d_bias)}")
-        tgb.number("{d_bias}", on_change=update_chart)
+        with tgb.layout(columns="100px 300px 200px 100px"):
+            tgb.text("# of dice")
+            tgb.text("# of sides")
+            tgb.text("drop die")
+            tgb.text("then add")
 
+            tgb.number("{die.count}", min=0, on_change=update_chart)
+            tgb.slider(
+                "{die.sides}", lov=[2, 4, 6, 8, 10, 12, 20, 100], on_change=update_chart
+            )
+            tgb.toggle(
+                "{die.drop}", lov=["low", "none", "high"], on_change=update_chart
+            )
+            tgb.number("{d_bias}", on_change=update_chart)
+
+        tgb.text(
+            "## -> {int(die.count)}d{die.sides} drop {die.drop} + {int(d_bias)}",
+            mode="md",
+        )
         tgb.chart(data="{d_prob}", x="x", y="y", type="bar")
 
     Gui(page).run(debug=True)

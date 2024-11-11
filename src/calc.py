@@ -38,7 +38,10 @@ class SequenceWithOffset:
         index_low = min(self.offset, other.offset)
         index_high = max(self._index_end(), other._index_end())
 
-        seq = np.zeros(index_high - index_low)
+        seq = np.zeros(
+            index_high - index_low,
+            dtype=(self.seq[0] + other.seq[0]).dtype,
+        )
         seq[self.offset - index_low : self._index_end() - index_low] = self.seq
         seq[other.offset - index_low : other._index_end() - index_low] += other.seq
 

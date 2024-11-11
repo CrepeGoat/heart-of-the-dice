@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 from hypothesis import assume, given
@@ -66,9 +68,15 @@ def test_roll_k_drophigh_sum(roll_1, k, drop):
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
-@given(
-    st.integers(min_value=1, max_value=10),
-)
+@given(st.integers(min_value=1, max_value=20))
+def test_d2_roll_k(k):
+    roll_1 = calc.roll_1dn(2)
+    result = calc.roll_k(roll_1, k)
+    assert np.all(result.seq == [math.comb(k, i) for i in range(k + 1)])
+    assert result.offset == k
+
+
+@given(st.integers(min_value=1, max_value=10))
 def test_d2_roll_k_droplow_all_but_1(drop):
     roll_1 = calc.roll_1dn(2)
     k = drop + 1

@@ -129,11 +129,11 @@ def _roll_k_iter(roll_1: SequenceWithOffset):
 
 
 def roll_1dn(n: int):
-    return SequenceWithOffset(seq=np.full(n, fill_value=1, dtype=np.int64), offset=1)
+    return SequenceWithOffset(seq=np.full(n, fill_value=1, dtype=np.uint64), offset=1)
 
 
 def roll_0():
-    return SequenceWithOffset(seq=np.ones(1, dtype=np.int64), offset=0)
+    return SequenceWithOffset(seq=np.ones(1, dtype=np.uint64), offset=0)
 
 
 def _take_index_n(iter, n: int):

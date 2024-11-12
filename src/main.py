@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import taipy.gui.builder as tgb
-from taipy.gui import Gui
+from taipy.gui import Gui, navigate
 
 import calc
 
@@ -81,6 +81,20 @@ def update_chart(state):
     )
 
 
+def buy_me_a_coffee_button():
+    with open("assets/bmc-button.png", mode="rb") as f:
+        image_content = f.read()
+    tgb.image(
+        image_content,
+        width="164px",
+        height="46px",
+        label="buy me a coffee!",
+        on_action=lambda state, id, payload: navigate(
+            state, to="http://buymeacoffee.com/awqtopus"
+        ),
+    )
+
+
 if __name__ == "__main__":
     die = DiceStruct.default()
     d_bias = 0
@@ -117,5 +131,7 @@ if __name__ == "__main__":
         tgb.chart(
             data="{d_prob}", x="x", y="y", type="bar", properties="{chart_properties}"
         )
+
+        buy_me_a_coffee_button()
 
     Gui(page).run(debug=True)

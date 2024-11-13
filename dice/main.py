@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import taipy.gui.builder as tgb
 from taipy.gui import Gui, navigate
 
-import calc
+from dice import calc
 
 
 @dataclass(kw_only=True, slots=True)

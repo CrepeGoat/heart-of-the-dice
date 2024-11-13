@@ -1,1 +1,1 @@
-taipy run src/main.py --port="auto" --use-reloader
+taipy run dice/main.py --port="auto" --use-reloader

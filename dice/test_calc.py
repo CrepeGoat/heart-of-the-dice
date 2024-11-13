@@ -5,7 +5,7 @@ import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from . import calc
+from dice import calc
 
 # Custom test strategies for SequenceWithOffset
 

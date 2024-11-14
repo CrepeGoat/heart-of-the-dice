@@ -93,6 +93,7 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
         for roll_1_prefix in roll_1_prefices
     ]
 
+    @functools.lru_cache(maxsize=None)
     def inner(nsub: int, ksub: int, dsub: int):
         if dsub == 0:
             return kdn_cache[nsub][ksub]

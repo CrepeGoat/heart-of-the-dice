@@ -39,3 +39,20 @@ def test_roll_kdn_drophigh_km1_matches_calc(k, n):
 
     assert np.all(result.seq == expt_result.seq)
     assert result.offset == expt_result.offset
+
+
+@given(
+    st.integers(min_value=1, max_value=5),
+    st.lists(st.integers(min_value=-5, max_value=5), min_size=10, max_size=10),
+)
+def test_poly_inv(degree, values):
+    state_init = np.zeros(degree + 1, dtype=np.int64)
+    gen = calc_spline._polynomial_state_machine(np.copy(state_init))
+    next(gen)
+    gen_inv = calc_spline._polynomial_inv_state_machine(np.copy(state_init))
+    next(gen_inv)
+
+    for value in values:
+        value_out = gen.send(value)
+        value_inv = gen_inv.send(value_out)
+        assert value == value_inv

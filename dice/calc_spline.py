@@ -68,6 +68,16 @@ def _kdn_droplow_km1_pre_coeffs(k):
     return itertools.accumulate(eulerian_numbers)
 
 
+def _polynomial_inv_state_machine(init_state: np.array) -> Iterable[int]:
+    state = init_state
+    del init_state
+    while True:
+        next_item = yield state[0]
+        state[0] = next_item - np.sum(state[1:])
+        np.add.accumulate(state, out=state)
+        assert next_item == state[-1]
+
+
 def _polynomial_state_machine(init_state: np.array) -> Iterable[int]:
     state = init_state
     del init_state

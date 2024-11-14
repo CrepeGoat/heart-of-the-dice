@@ -15,3 +15,27 @@ def test_roll_kdn_matches_calc(k, n):
 
     assert np.all(result.seq == expt_result.seq)
     assert result.offset == expt_result.offset
+
+
+@given(
+    st.integers(min_value=2, max_value=4),
+    st.integers(min_value=1, max_value=20),
+)
+def test_roll_kdn_droplow_km1_matches_calc(k, n):
+    result = calc_spline.roll_kdn_droplow_km1(k, n)
+    expt_result = calc.roll_k_droplow(calc.roll_1dn(n), k, k - 1)
+
+    assert np.all(result.seq == expt_result.seq)
+    assert result.offset == expt_result.offset
+
+
+@given(
+    st.integers(min_value=2, max_value=10),
+    st.integers(min_value=1, max_value=20),
+)
+def test_roll_kdn_drophigh_km1_matches_calc(k, n):
+    result = calc_spline.roll_kdn_drophigh_km1(k, n)
+    expt_result = calc.roll_k_drophigh(calc.roll_1dn(n), k, k - 1)
+
+    assert np.all(result.seq == expt_result.seq)
+    assert result.offset == expt_result.offset

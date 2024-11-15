@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="dnd_dice_calc",
-    version="0.1.0",
+    version="0.1.1",
     description="A simple UI tool for calculating D&D dice roll probabilities.",
     author="CrepeGoat",
     packages=find_packages(include=["dice", "dice.*"], exclude=["test_*.py"]),

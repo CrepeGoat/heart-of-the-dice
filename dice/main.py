@@ -81,6 +81,17 @@ def update_chart(state):
     )
 
 
+def set_params(state, count_keep, count_drop, sides, bias: int):
+    state.die.count_keep = count_keep
+    state.die.count_drop = count_drop
+    state.die.sides = sides
+    state.d_bias = bias
+    state.d_prob = calc_prob(count_keep, sides, d_bias, count_drop)
+
+    state.refresh("die")
+    state.refresh("d_bias")
+
+
 def buy_me_a_coffee_button():
     with open("assets/bmc-button.png", mode="rb") as f:
         image_content = f.read()
@@ -110,6 +121,28 @@ chart_properties = dict(
 with tgb.Page() as page:
     tgb.text("# D&D Dice Calculator", mode="md")
 
+    tgb.text("### common configurations", mode="md")
+    with tgb.layout(columns="150px 150px 150px"):
+        tgb.button(
+            label="roll w/ advantage",
+            on_action=lambda state: set_params(
+                state, count_keep=1, count_drop=-1, sides=20, bias=0
+            ),
+        )
+        tgb.button(
+            label="roll w/ disadvantage",
+            on_action=lambda state: set_params(
+                state, count_keep=1, count_drop=1, sides=20, bias=0
+            ),
+        )
+        tgb.button(
+            label="roll a stat",
+            on_action=lambda state: set_params(
+                state, count_keep=3, count_drop=-1, sides=6, bias=0
+            ),
+        )
+
+    tgb.text("### full configuration", mode="md")
     with tgb.layout(columns="100px 300px 100px 100px"):
         tgb.text("# of dice")
         tgb.text("# of sides")

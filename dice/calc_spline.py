@@ -41,6 +41,8 @@ def roll_kdn_drophigh_km1(k: int, n: int) -> SequenceWithOffset:
 
 
 def roll_kdn_droplow_km1(k: int, n: int) -> SequenceWithOffset:
+    if k < 1:
+        raise ValueError("k >= 1")
     return SequenceWithOffset(
         seq=np.array(list(_kdn_droplow_km1(k, n)), dtype=np.uint64),
         offset=1,
@@ -61,6 +63,34 @@ def _kdn_droplow_km1(k: int, n: int) -> Iterable[int]:
 
     for _ in range(n):
         yield gen.send(next(iter_coeffs))
+
+
+def roll_kdn_droplow_km2(k: int, n: int) -> SequenceWithOffset:
+    if k < 2:
+        raise ValueError("k >= 2")
+    return SequenceWithOffset(seq=_kdn_droplow_km2(k, n), offset=2)
+
+
+def _kdn_droplow_km2(k, n):
+    if k == 2:
+        raise NotImplementedError("TODO implement 2dn drop 2 case")
+    abs_coeffs_init = np.zeros(2 * n - 1, dtype=np.int64)
+
+    # TODO add init coeffs
+    if k == 3:
+        abs_coeffs_init[:3] = [1, -1, 1]
+    elif k == 4:
+        abs_coeffs_init[:5] = [1, -2, 6, -2, 1]
+    else:
+        raise NotImplementedError("TODO implement generic coefficient generation")
+
+    abs_coeffs = _poly(abs_coeffs_init, k - 2)
+    coeffs = abs_coeffs * (1 - 2 * (np.arange(len(abs_coeffs), dtype=np.int64) % 2))
+    coeffs[n : n + k - 1] -= k * np.array(
+        [_eulerian_number(k - 1, i) for i in range(k - 1)], dtype=np.int64
+    )
+    print(coeffs)
+    return _poly(coeffs, k)
 
 
 def _poly(coeffs, k):

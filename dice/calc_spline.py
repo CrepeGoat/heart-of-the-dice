@@ -91,7 +91,6 @@ def _kdn_droplow_km2(k, n):
     abs_coeffs = _poly(abs_coeffs_init, k)
     coeffs = abs_coeffs * (1 - 2 * (np.arange(len(abs_coeffs), dtype=np.int64) % 2))
     coeffs[n : n + k - 1] -= scaled_eulers_km1[: n - 1]
-    print(coeffs)
     return _poly(coeffs, k)
 
 

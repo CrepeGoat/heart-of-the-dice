@@ -48,10 +48,10 @@ def roll_kdn_droplow_km1(k: int, n: int) -> SequenceWithOffset:
 
 
 def _kdn_droplow_km1(k: int, n: int) -> Iterable[int]:
-    gen = _polynomial_state_machine(init_state=np.zeros(k, dtype=np.int64))
+    gen = _polynomial_state_machine(init_state=np.zeros(k + 1, dtype=np.int64))
     iter_coeffs = itertools.chain(
-        _kdn_droplow_km1_pre_coeffs(k),
-        itertools.repeat(math.factorial(k)),
+        (_eulerian_number(k, i) for i in range(k)),
+        itertools.repeat(0),
     )
 
     # need to ignore the first iteration, which
@@ -61,11 +61,6 @@ def _kdn_droplow_km1(k: int, n: int) -> Iterable[int]:
 
     for _ in range(n):
         yield gen.send(next(iter_coeffs))
-
-
-def _kdn_droplow_km1_pre_coeffs(k):
-    eulerian_numbers = (_eulerian_number(k, i) for i in range(k))
-    return itertools.accumulate(eulerian_numbers)
 
 
 def _polynomial_inv_state_machine(init_state: np.array) -> Iterable[int]:

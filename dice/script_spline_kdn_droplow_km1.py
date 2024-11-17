@@ -15,12 +15,12 @@ for k in range(3, 10):
     coeffs_abs = np.abs(coeffs)
     print(f"\t abs: {coeffs_abs}")
 
-    coeffs_abs_coeffs = calc_spline._poly_inv(coeffs_abs, k - 2)
-    print(f"\t abs {k-2}-th deriv: {coeffs_abs_coeffs}")
+    coeffs_abs_coeffs = calc_spline._poly_inv(coeffs_abs, k)
+    print(f"\t abs {k}-th deriv: {coeffs_abs_coeffs}")
 
     coeffs_est = np.copy(coeffs_abs_coeffs)
-    coeffs_est[2 * (k - 2) + 1 :] = 0
-    coeffs_est = calc_spline._poly(coeffs_est, k - 2)
+    coeffs_est[2 * (k - 1) + 1 :] = 0
+    coeffs_est = calc_spline._poly(coeffs_est, k)
     coeffs_est = coeffs_est * (np.full_like(coeffs, -1) ** np.arange(len(coeffs)))
     print(f"\t est: {coeffs_est}")
 

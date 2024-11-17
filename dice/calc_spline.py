@@ -74,21 +74,23 @@ def roll_kdn_droplow_km2(k: int, n: int) -> SequenceWithOffset:
 def _kdn_droplow_km2(k, n):
     if k == 2:
         raise NotImplementedError("TODO implement 2dn drop 2 case")
-    abs_coeffs_init = np.zeros(2 * n - 1, dtype=np.int64)
-
-    # TODO add init coeffs
-    if k == 3:
-        abs_coeffs_init[:3] = [1, -1, 1]
-    elif k == 4:
-        abs_coeffs_init[:5] = [1, -2, 6, -2, 1]
-    else:
-        raise NotImplementedError("TODO implement generic coefficient generation")
-
-    abs_coeffs = _poly(abs_coeffs_init, k - 2)
-    coeffs = abs_coeffs * (1 - 2 * (np.arange(len(abs_coeffs), dtype=np.int64) % 2))
-    coeffs[n : n + k - 1] -= k * np.array(
+    scaled_eulers_km1 = k * np.array(
         [_eulerian_number(k - 1, i) for i in range(k - 1)], dtype=np.int64
     )
+    eulers_k = np.array([_eulerian_number(k, i) for i in range(k)], dtype=np.int64)
+
+    abs_coeffs_init_raw = np.empty(2 * k - 1, dtype=np.int64)
+    abs_coeffs_init_raw[0::2] = eulers_k
+    abs_coeffs_init_raw[1::2] = -scaled_eulers_km1
+
+    abs_coeffs_init = np.zeros(2 * n - 1, dtype=np.int64)
+    abs_coeffs_init[: len(abs_coeffs_init_raw)] = abs_coeffs_init_raw[
+        : len(abs_coeffs_init)
+    ]
+
+    abs_coeffs = _poly(abs_coeffs_init, k)
+    coeffs = abs_coeffs * (1 - 2 * (np.arange(len(abs_coeffs), dtype=np.int64) % 2))
+    coeffs[n : n + k - 1] -= scaled_eulers_km1
     print(coeffs)
     return _poly(coeffs, k)
 

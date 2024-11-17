@@ -43,7 +43,7 @@ def test_roll_kdn_drophigh_km1_matches_calc(k, n):
 
 @given(
     st.integers(min_value=3, max_value=10),
-    st.integers(min_value=10, max_value=20),
+    st.integers(min_value=1, max_value=20),
 )
 def test_roll_kdn_droplow_km2_matches_calc(k, n):
     result = calc_spline.roll_kdn_droplow_km2(k, n)

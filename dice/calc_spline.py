@@ -41,6 +41,8 @@ def roll_kdn_drophigh_km1(k: int, n: int) -> SequenceWithOffset:
 
 
 def roll_kdn_droplow_km1(k: int, n: int) -> SequenceWithOffset:
+    if k < 1:
+        raise ValueError("k >= 1")
     return SequenceWithOffset(
         seq=np.array(list(_kdn_droplow_km1(k, n)), dtype=np.uint64),
         offset=1,
@@ -61,6 +63,55 @@ def _kdn_droplow_km1(k: int, n: int) -> Iterable[int]:
 
     for _ in range(n):
         yield gen.send(next(iter_coeffs))
+
+
+def roll_kdn_drophigh_km2(k: int, n: int) -> SequenceWithOffset:
+    result = roll_kdn_droplow_km2(k, n)
+    result.seq = np.flip(result.seq)
+    return result
+
+
+def roll_kdn_droplow_km2(k: int, n: int) -> SequenceWithOffset:
+    if k < 2:
+        raise ValueError("k >= 2")
+    return SequenceWithOffset(seq=_kdn_droplow_km2(k, n), offset=2)
+
+
+def _kdn_droplow_km2(k, n):
+    if k == 2:
+        raise NotImplementedError("TODO implement 2dn drop 2 case")
+    scaled_eulers_km1 = k * np.array(
+        [_eulerian_number(k - 1, i) for i in range(k - 1)], dtype=np.int64
+    )
+    eulers_k = np.array([_eulerian_number(k, i) for i in range(k)], dtype=np.int64)
+
+    abs_coeffs_init_raw = np.empty(2 * k - 1, dtype=np.int64)
+    abs_coeffs_init_raw[0::2] = eulers_k
+    abs_coeffs_init_raw[1::2] = -scaled_eulers_km1
+
+    abs_coeffs_init = np.zeros(2 * n - 1, dtype=np.int64)
+    abs_coeffs_init[: len(abs_coeffs_init_raw)] = abs_coeffs_init_raw[
+        : len(abs_coeffs_init)
+    ]
+
+    abs_coeffs = _poly(abs_coeffs_init, k)
+    coeffs = abs_coeffs * (1 - 2 * (np.arange(len(abs_coeffs), dtype=np.int64) % 2))
+    coeffs[n : n + k - 1] -= scaled_eulers_km1[: n - 1]
+    return _poly(coeffs, k)
+
+
+def _poly(coeffs, k):
+    result = np.copy(coeffs)
+    for _ in range(k):
+        np.add.accumulate(result, out=result)
+    return result
+
+
+def _poly_inv(values, k):
+    result = np.copy(values)
+    for _ in range(k):
+        result[1:] = np.diff(result)
+    return result
 
 
 def _polynomial_inv_state_machine(init_state: np.array) -> Iterable[int]:

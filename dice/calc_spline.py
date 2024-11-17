@@ -63,6 +63,20 @@ def _kdn_droplow_km1(k: int, n: int) -> Iterable[int]:
         yield gen.send(next(iter_coeffs))
 
 
+def _poly(coeffs, k):
+    result = np.copy(coeffs)
+    for _ in range(k):
+        np.add.accumulate(result, out=result)
+    return result
+
+
+def _poly_inv(values, k):
+    result = np.copy(values)
+    for _ in range(k):
+        result[1:] = np.diff(result)
+    return result
+
+
 def _polynomial_inv_state_machine(init_state: np.array) -> Iterable[int]:
     state = init_state
     del init_state

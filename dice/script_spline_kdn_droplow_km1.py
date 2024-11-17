@@ -46,11 +46,13 @@ print(f"\tpattern: {coeffs_est}")
 print(f"\tdiff from pattern: {coeffs - coeffs_est}")
 
 
-for k in range(3, 6):
+print("\n\n\n")
+
+for k in range(3, 10):
     drop = k - 2
     print(f"{k} drop {drop}")
 
-    dist = calc.roll_k_droplow(calc.roll_1dn(8), k=k, drop=drop)
+    dist = calc.roll_k_droplow(calc.roll_1dn(20), k=k, drop=drop)
     print(f"\tprobs: {dist.seq}")
 
     coeffs = []
@@ -61,8 +63,18 @@ for k in range(3, 6):
     coeffs = np.array(coeffs, dtype=np.int64)
     print(f"\t{k+1}-degree poly: {coeffs}")
 
-    alt_diff = np.diff(np.abs(coeffs))
-    print(f"\t alt diff: {alt_diff}")
-    for _ in range(k - 3):
-        alt_diff = np.diff(alt_diff)
-        print(f"\t\t{alt_diff}")
+    coeffs_abs = np.abs(coeffs)
+    print(f"\t abs: {coeffs_abs}")
+
+    coeffs_abs_coeffs = calc_spline._poly_inv(coeffs_abs[2:], k - 2)
+    print(f"\t abs k-th deriv: {coeffs_abs_coeffs}")
+
+    coeffs_est = np.copy(coeffs_abs_coeffs)
+    coeffs_est[2 * (k - 3) + 1 :] = 0
+    coeffs_est = calc_spline._poly(coeffs_est, k - 2)
+    coeffs_est = coeffs_est * (
+        np.full_like(coeffs[2:], -1) ** np.arange(len(coeffs) - 2)
+    )
+    print(f"\t est: {coeffs_est}")
+
+    print(f"\t est error: {coeffs[2:] - coeffs_est}")

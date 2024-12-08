@@ -101,10 +101,16 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
 
         result = roll_1dn(0)
         for i_fixed in range(n):  # i_fixed - the index for the value of fixed dice
-            for j in range(1, k + 1):  # j - the number of fixed dice
+            for j in range(1, drop):  # j - the number of fixed dice
                 result = result.consolidate(
-                    inner(i_fixed, k - j, max(drop - j, 0)).bias_by(
-                        max(j - drop, 0) * (i_fixed + roll_1.offset)
+                    inner(i_fixed, k - j, drop - j)
+                    * math.comb(k, j)
+                    * (roll_1.seq[i_fixed] ** j)
+                )
+            for j in range(drop, k + 1):  # j - the number of fixed dice
+                result = result.consolidate(
+                    inner(i_fixed, k - j, 0).bias_by(
+                        (j - drop) * (i_fixed + roll_1.offset)
                     )
                     * math.comb(k, j)
                     * (roll_1.seq[i_fixed] ** j)

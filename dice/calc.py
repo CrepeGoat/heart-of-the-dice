@@ -84,19 +84,17 @@ def roll_k_droplow(roll_1: SequenceWithOffset, k: int, drop: int):
 
 def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
     assert drop > 0
-    roll_1_prefices = [
-        SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
-        for n in range(len(roll_1.seq))
-    ]
-    kdn_cache = [
-        _take_first_n(_roll_k_iter(roll_1_prefix), k)
-        for roll_1_prefix in roll_1_prefices
-    ]
 
     @functools.lru_cache(maxsize=None)
     def inner(nsub: int, ksub: int, dsub: int):
         if dsub == 0:
-            return kdn_cache[nsub][ksub]
+            if ksub == 0:
+                return roll_0()
+            if ksub == 1:
+                return SequenceWithOffset(seq=roll_1.seq[:nsub], offset=roll_1.offset)
+            return inner(nsub=nsub, ksub=1, dsub=0).convolve(
+                inner(nsub=nsub, ksub=ksub - 1, dsub=0)
+            )
 
         result = roll_1dn(0)
         for i_fixed in range(nsub):  # i_fixed - the index for the value of fixed dice

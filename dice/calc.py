@@ -92,6 +92,8 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
 
     @functools.lru_cache(maxsize=None)
     def inner(n: int, k: int, drop: int):
+        if n == 1:
+            return roll_0().bias_by(roll_1.offset * (k - drop)) * (roll_1.seq[0] ** k)
         if drop == 0:
             if k == 0:
                 return roll_0()
@@ -100,21 +102,18 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
             return inner(n=n, k=1, drop=0).convolve(inner(n=n, k=k - 1, drop=0))
 
         result = roll_1dn(0)
-        for i_fixed in range(n):  # i_fixed - the index for the value of fixed dice
-            for j in range(1, drop):  # j - the number of fixed dice
-                result = result.consolidate(
-                    inner(i_fixed, k - j, drop - j)
-                    * math.comb(k, j)
-                    * (roll_1.seq[i_fixed] ** j)
-                )
-            for j in range(drop, k + 1):  # j - the number of fixed dice
-                result = result.consolidate(
-                    inner(i_fixed, k - j, 0).bias_by(
-                        (j - drop) * (i_fixed + roll_1.offset)
-                    )
-                    * math.comb(k, j)
-                    * (roll_1.seq[i_fixed] ** j)
-                )
+        for j in range(drop):  # j - the number of fixed dice
+            result = result.consolidate(
+                inner(n - 1, k - j, drop - j)
+                * math.comb(k, j)
+                * (roll_1.seq[n - 1] ** j)
+            )
+        for j in range(drop, k + 1):  # j - the number of fixed dice
+            result = result.consolidate(
+                inner(n - 1, k - j, 0).bias_by((j - drop) * (n - 1 + roll_1.offset))
+                * math.comb(k, j)
+                * (roll_1.seq[n - 1] ** j)
+            )
         return result
 
     return inner(n=len(roll_1.seq), k=_k, drop=_drop)

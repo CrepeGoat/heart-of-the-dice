@@ -20,7 +20,7 @@ def st_sequence_with_offset(
     )
 
     return calc.SequenceWithOffset(
-        seq=np.array(draw(st_values), dtype=np.int64), offset=draw(st_offset)
+        seq=np.array(draw(st_values), dtype=np.uint64), offset=draw(st_offset)
     )
 
 
@@ -42,7 +42,9 @@ def st_default_sequence_with_offset(draw):
     st.integers(min_value=0, max_value=4),
 )
 def test_roll_k_sum(roll_1, k):
+    assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k(roll_1, k)
+    assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
@@ -53,7 +55,9 @@ def test_roll_k_sum(roll_1, k):
 )
 def test_roll_k_droplow_sum(roll_1, k, drop):
     assume(drop <= k)
+    assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_droplow(roll_1, k, drop)
+    assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
@@ -64,14 +68,18 @@ def test_roll_k_droplow_sum(roll_1, k, drop):
 )
 def test_roll_k_drophigh_sum(roll_1, k, drop):
     assume(drop <= k)
+    assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_drophigh(roll_1, k, drop)
+    assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
 
 @given(st.integers(min_value=1, max_value=20))
 def test_d2_roll_k(k):
     roll_1 = calc.roll_1dn(2)
+    assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k(roll_1, k)
+    assert result.seq.dtype.type is np.uint64
     assert np.all(result.seq == [math.comb(k, i) for i in range(k + 1)])
     assert result.offset == k
 
@@ -79,15 +87,21 @@ def test_d2_roll_k(k):
 @given(st.integers(min_value=1, max_value=10))
 def test_d2_roll_k_droplow_all_but_1(drop):
     roll_1 = calc.roll_1dn(2)
+    assert roll_1.seq.dtype.type is np.uint64
     k = drop + 1
 
     result = calc.roll_k_droplow(roll_1, k, drop)
+    assert result.seq.dtype.type is np.uint64
     assert np.all(result.seq == [1, 2**k - 1])
     assert result.offset == 1
 
 
 def test_4d6_droplow():
-    result = calc.roll_k_droplow(calc.roll_1dn(6), 4, 1)
+    roll_1 = calc.roll_1dn(6)
+    assert roll_1.seq.dtype.type is np.uint64
+    result = calc.roll_k_droplow(roll_1, 4, 1)
+    assert result.seq.dtype.type is np.uint64
+
     assert result.offset == 3
 
     assert result.seq[0] == pytest.approx(1)

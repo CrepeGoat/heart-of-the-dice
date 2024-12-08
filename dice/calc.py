@@ -85,30 +85,33 @@ def roll_k_droplow(roll_1: SequenceWithOffset, k: int, drop: int):
 def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
     assert drop > 0
 
+    # Rename outer function parameters to avoid naming collisions with inner
+    # function parameters.
+    _k, _drop = k, drop
+    del k, drop
+
     @functools.lru_cache(maxsize=None)
-    def inner(nsub: int, ksub: int, dsub: int):
-        if dsub == 0:
-            if ksub == 0:
+    def inner(n: int, k: int, drop: int):
+        if drop == 0:
+            if k == 0:
                 return roll_0()
-            if ksub == 1:
-                return SequenceWithOffset(seq=roll_1.seq[:nsub], offset=roll_1.offset)
-            return inner(nsub=nsub, ksub=1, dsub=0).convolve(
-                inner(nsub=nsub, ksub=ksub - 1, dsub=0)
-            )
+            if k == 1:
+                return SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
+            return inner(n=n, k=1, drop=0).convolve(inner(n=n, k=k - 1, drop=0))
 
         result = roll_1dn(0)
-        for i_fixed in range(nsub):  # i_fixed - the index for the value of fixed dice
-            for j in range(1, ksub + 1):  # j - the number of fixed dice
+        for i_fixed in range(n):  # i_fixed - the index for the value of fixed dice
+            for j in range(1, k + 1):  # j - the number of fixed dice
                 result = result.consolidate(
-                    inner(i_fixed, ksub - j, max(dsub - j, 0)).bias_by(
-                        max(j - dsub, 0) * (i_fixed + roll_1.offset)
+                    inner(i_fixed, k - j, max(drop - j, 0)).bias_by(
+                        max(j - drop, 0) * (i_fixed + roll_1.offset)
                     )
-                    * math.comb(ksub, j)
+                    * math.comb(k, j)
                     * (roll_1.seq[i_fixed] ** j)
                 )
         return result
 
-    return inner(nsub=len(roll_1.seq), ksub=k, dsub=drop)
+    return inner(n=len(roll_1.seq), k=_k, drop=_drop)
 
 
 def roll_k(roll_1: SequenceWithOffset, k: int):

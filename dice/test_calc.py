@@ -3,7 +3,6 @@ import math
 from collections import defaultdict
 
 import numpy as np
-import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
@@ -136,10 +135,10 @@ def test_4d6_droplow():
 
     assert result.offset == 3
 
-    assert result.seq[0] == pytest.approx(1)
-    assert result.seq[1] == pytest.approx(4)
-    assert result.seq[2] == pytest.approx(10)
-    assert result.seq[-1] == pytest.approx(21)
+    assert result.seq[0] == 1
+    assert result.seq[1] == 4
+    assert result.seq[2] == 10
+    assert result.seq[-1] == 21
 
 
 class TestSequenceWithOffset:

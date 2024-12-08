@@ -1,4 +1,6 @@
+import itertools
 import math
+from collections import defaultdict
 
 import numpy as np
 import pytest
@@ -28,24 +30,42 @@ def st_sequence_with_offset(
 def st_default_sequence_with_offset(draw):
     return draw(
         st_sequence_with_offset(
-            st_values=st.integers(min_value=0, max_value=5),
+            st_values=st.integers(min_value=0, max_value=3),
             len_min=1,
-            len_max=7,
+            len_max=5,
             offset_min=-3,
             offset_max=3,
         )
     )
 
 
+def generate_outcomes(roll_1: calc.SequenceWithOffset):
+    for i, count in enumerate(roll_1.seq, start=roll_1.offset):
+        yield from itertools.repeat(i, count)
+
+
+def collect_outcomes(outcomes) -> dict:
+    result = defaultdict(int)
+    for o in outcomes:
+        result[o] += 1
+    return dict(result)
+
+
 @given(
     st_default_sequence_with_offset(),
     st.integers(min_value=0, max_value=4),
 )
-def test_roll_k_sum(roll_1, k):
+def test_roll_k(roll_1, k):
     assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k(roll_1, k)
     assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
+
+    calc_counts = collect_outcomes(generate_outcomes(result))
+    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k)
+    expt_events = [sum(i) for i in expt_outcomes]
+    expt_counts = collect_outcomes(expt_events)
+    assert calc_counts == expt_counts
 
 
 @given(
@@ -53,25 +73,37 @@ def test_roll_k_sum(roll_1, k):
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
-def test_roll_k_droplow_sum(roll_1, k, drop):
+def test_roll_k_droplow(roll_1, k, drop):
     assume(drop <= k)
     assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_droplow(roll_1, k, drop)
     assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
 
+    calc_counts = collect_outcomes(generate_outcomes(result))
+    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k)
+    expt_events = [sum(sorted(i)[drop:]) for i in expt_outcomes]
+    expt_counts = collect_outcomes(expt_events)
+    assert calc_counts == expt_counts
+
 
 @given(
     st_default_sequence_with_offset(),
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
-def test_roll_k_drophigh_sum(roll_1, k, drop):
+def test_roll_k_drophigh(roll_1, k, drop):
     assume(drop <= k)
     assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_drophigh(roll_1, k, drop)
     assert result.seq.dtype.type is np.uint64
     assert result.seq.sum() == roll_1.seq.sum() ** k
+
+    calc_counts = collect_outcomes(generate_outcomes(result))
+    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k)
+    expt_events = [sum(sorted(i)[:-drop]) for i in expt_outcomes]
+    expt_counts = collect_outcomes(expt_events)
+    assert calc_counts == expt_counts
 
 
 @given(st.integers(min_value=1, max_value=20))

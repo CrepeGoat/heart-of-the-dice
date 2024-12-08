@@ -98,21 +98,17 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
         if dsub == 0:
             return kdn_cache[nsub][ksub]
 
-        return functools.reduce(
-            SequenceWithOffset.consolidate,
-            (
-                inner(i_fixed, ksub - j, max(dsub - j, 0)).bias_by(
-                    max(j - dsub, 0) * (i_fixed + roll_1.offset)
+        result = roll_1dn(0)
+        for i_fixed in range(nsub):  # i_fixed - the index for the value of fixed dice
+            for j in range(1, ksub + 1):  # j - the number of fixed dice
+                result = result.consolidate(
+                    inner(i_fixed, ksub - j, max(dsub - j, 0)).bias_by(
+                        max(j - dsub, 0) * (i_fixed + roll_1.offset)
+                    )
+                    * math.comb(ksub, j)
+                    * (roll_1.seq[i_fixed] ** j)
                 )
-                * math.comb(ksub, j)
-                * (roll_1.seq[i_fixed] ** j)
-                for j in range(1, ksub + 1)  # j - the number of fixed dice
-                for i_fixed in range(
-                    nsub
-                )  # i_fixed - the index for the value of fixed dice
-            ),
-            roll_1dn(0),
-        )
+        return result
 
     return inner(nsub=len(roll_1.seq), ksub=k, dsub=drop)
 

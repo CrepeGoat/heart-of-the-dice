@@ -9,29 +9,21 @@ from dice.calc import SequenceWithOffset
 
 
 def roll_kdn(k: int, n: int) -> SequenceWithOffset:
-    return SequenceWithOffset(
-        seq=np.array(list(_kdn(k, n)), dtype=np.uint64),
-        offset=k,
+    return SequenceWithOffset(seq=_kdn(k, n).astype(np.uint64), offset=k)
+
+
+def _kdn(k: int, n: int) -> np.array:
+    coeffs = np.zeros(k * (n - 1) + 1, dtype=np.int64)
+
+    kp1_choose_i_alt = np.array(
+        [math.comb(k, i) for i in range(k + 1)],
+        dtype=np.int64,
     )
-
-
-def _kdn(k: int, n: int) -> Iterable[int]:
-    gen = _polynomial_state_machine(init_state=np.zeros(k, dtype=np.int64))
-    iter_nck_alt_sign = (
-        math.comb(k - 1, i) * (1 if i % 2 == 0 else -1) for i in range(k)
-    )
-    iter_coeffs = itertools.chain.from_iterable(
-        itertools.repeat(nck, n) for nck in iter_nck_alt_sign
-    )
-
-    # need to ignore the first iteration, which
-    # 1) yields an array of 0's and
-    # 2) can only take None as an input, by design of generators
-    gen.send(None)
-
+    kp1_choose_i_alt[1::2] *= -1
     # Note: there are FEWER return values than coefficients; this is intentional
-    for _ in range(k * (n - 1) + 1):
-        yield gen.send(next(iter_coeffs))
+    coeffs[::n] = kp1_choose_i_alt[: len(coeffs[::n])]
+
+    return _poly(coeffs, k)
 
 
 def roll_kdn_drophigh_km1(k: int, n: int) -> SequenceWithOffset:

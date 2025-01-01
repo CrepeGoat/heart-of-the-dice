@@ -9,28 +9,22 @@ for k in range(4, 7):
     dist = calc.roll_k_droplow(calc.roll_1dn(40), k=k, drop=drop)
     print(f"\tprobs: {dist.seq}")
 
-    for degree in range(1, k + 1):
-        coeffs = calc_spline._poly_inv(dist.seq.astype(np.int64), degree)
-        print(f"\t{degree}-degree poly: {coeffs}")
+    degree1 = k
+    deriv = calc_spline._poly_inv(dist.seq.astype(np.int64), degree1)
+    print(f"\t{degree1}-degree poly: {deriv}")
 
-    coeffs_abs = np.abs(coeffs)
-    print(f"\t abs: {coeffs_abs}")
+    deriv_0mod3 = deriv[::3]
+    deriv_1mod3 = deriv[1::3]
+    deriv_2mod3 = deriv[2::3]
+    print(f"\t{degree1}-degree poly slice ::3 {deriv_0mod3}")
+    print(f"\t{degree1}-degree poly slice 1::3 {deriv_1mod3}")
+    print(f"\t{degree1}-degree poly slice 2::3 {deriv_2mod3}")
 
-    for degree in range(1, k + 1):
-        coeffs_abs_coeffs = calc_spline._poly_inv(coeffs_abs, degree)
-        print(f"\t abs {degree}-th deriv: {coeffs_abs_coeffs}")
+    degree2 = k - 3
+    deriv_0mod3_deriv = calc_spline._poly_inv(deriv_0mod3, degree2)
+    deriv_1mod3_deriv = calc_spline._poly_inv(deriv_1mod3, degree2)
+    deriv_2mod3_deriv = calc_spline._poly_inv(deriv_2mod3, degree2)
+    print(f"\t{degree1}-degree poly slice ::3 {degree2}-degree poly: {deriv_0mod3_deriv}")
+    print(f"\t{degree1}-degree poly slice 1::3 {degree2}-degree poly: {deriv_1mod3_deriv}")
+    print(f"\t{degree1}-degree poly slice 2::3 {degree2}-degree poly: {deriv_2mod3_deriv}")
 
-    coeffs_abs_coeffs_abs = np.abs(coeffs_abs_coeffs)
-    print(f"\t abs abs: {coeffs_abs_coeffs_abs}")
-
-    for degree in range(1, k + 1):
-        coeffs_abs_coeffs = calc_spline._poly_inv(coeffs_abs_coeffs_abs, degree)
-        print(f"\t abs abs {degree}-th deriv: {coeffs_abs_coeffs}")
-
-    # coeffs_est = np.copy(coeffs_abs_coeffs)
-    # coeffs_est[2 * (k - 1) + 1 :] = 0
-    # coeffs_est = calc_spline._poly(coeffs_est, k)
-    # coeffs_est = coeffs_est * (np.full_like(coeffs, -1) ** np.arange(len(coeffs)))
-    # print(f"\t est: {coeffs_est}")
-
-    # print(f"\t est error: {coeffs - coeffs_est}")

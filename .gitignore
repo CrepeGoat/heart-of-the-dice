@@ -1,5 +1,9 @@
+# Rust
 /debug
 /target
+
+# Leptos
+/dist
 
 # macOS system files
 .DS_Store

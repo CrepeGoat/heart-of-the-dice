@@ -7,30 +7,18 @@ fn main() {
 use leptos::prelude::*;
 
 #[component]
-fn App() -> impl IntoView {
-    let (count, set_count) = signal(0);
-    let double_count = move || count.get() * 2;
+fn ProgressBar(
+    #[prop(optional)] progress: Option<Box<dyn Fn() -> i32 + Send + Sync>>,
+) -> impl IntoView {
+    progress.map(|progress| {
+        view! {
+            <progress max=100 value=progress />
+            <br />
+        }
+    })
+}
 
-    view! {
-        <button
-            on:click=move |_| {
-                *set_count.write() += 1;
-            }
-            // the class: syntax reactively updates a single class
-            // here, we'll set the `red` class when `count` is odd
-            class:red=move || count.get() % 2 == 1
-        >
-            "Click me"
-        </button>
-
-        <progress
-            max="50"
-            // we use it once here
-            value=double_count
-        />
-        <p>
-            "Double Count: " // and again here
-            {double_count}
-        </p>
-    }
+#[component]
+pub fn App() -> impl IntoView {
+    view! { <ProgressBar /> }
 }

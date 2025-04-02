@@ -26,7 +26,50 @@ fn HomogeneousDiceInputPanel(dice_sides: RwSignal<Result<u32, ParseIntError>>) -
     // let (dice_drop_count, set_dice_drop_count) = signal(0i32);
     // let (dice_modifier, set_dice_modifier) = signal(0i32);
 
-    view! { <NumberInput value=dice_sides min=2 max=100 /> }
+    view! {
+        <DiscreteRangeAndNumberInput
+            value=dice_sides
+            options=&[2, 4, 6, 8, 10, 12, 20, 100]
+            min=2
+            max=100
+        />
+    }
+}
+
+#[component]
+fn DiscreteRangeAndNumberInput(
+    value: RwSignal<Result<u32, ParseIntError>>,
+    options: &'static [u32],
+    #[prop(default = u32::MIN)] min: u32,
+    #[prop(default = u32::MAX)] max: u32,
+) -> impl IntoView {
+    let options_len = options.len();
+    let range_index = RwSignal::new(0);
+    let update_range_index = move || {
+        value.with(|v| {
+            v.as_ref().map_or(range_index.get(), |v| {
+                options
+                    .iter()
+                    .position(|o| *o == *v)
+                    .unwrap_or(range_index.get())
+            })
+        })
+    };
+
+    view! {
+        <input
+            type="range"
+            on:input:target=move |ev| {
+                range_index.set(ev.target().value().parse::<usize>().unwrap());
+                value.set(Ok(options[range_index.get()]));
+            }
+            prop:value=update_range_index
+            min="0"
+            max=options_len - 1
+            step="1"
+        />
+        <NumberInput value=value min=min max=max />
+    }
 }
 
 #[component]

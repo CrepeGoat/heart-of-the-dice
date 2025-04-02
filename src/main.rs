@@ -35,12 +35,15 @@ fn NumberInput(
     #[prop(default = u32::MIN)] min: u32,
     #[prop(default = u32::MAX)] max: u32,
 ) -> impl IntoView {
-    let value_str = RwSignal::new(value.with(|x| x.as_ref().unwrap_or(&min).to_string()));
-    Effect::new(move |_| {
-        let x = value_str.with(|x| x.parse::<u32>());
-        value.set(x);
-    });
     view! {
-        <input type="number" bind:value=value_str min=min max=max />
+        <input
+            type="number"
+            on:input:target=move |ev| {
+                value.set(ev.target().value().parse::<u32>());
+            }
+            prop:value=move || value.with(|x| x.as_ref().unwrap_or(&min).to_string())
+            min=min
+            max=max
+        />
     }
 }

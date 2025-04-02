@@ -10,22 +10,53 @@ fn main() {
                 .unwrap_or("Err".to_string())
         })
     };
+    let dice_count = RwSignal::new(Ok(1));
+    let dice_count_str = move || {
+        dice_count.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+    let adv_dice_count = RwSignal::new(Ok(0));
+    let adv_dice_count_str = move || {
+        adv_dice_count.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+    let modifier = RwSignal::new(Ok(0));
+    let modifier_str = move || {
+        modifier.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
 
     mount_to_body(move || {
         view! {
-            <p>"Number of sides: " {dice_sides_str}</p>
-            <HomogeneousDiceInputPanel dice_sides=dice_sides />
+            <p>
+                {dice_count_str}"d"{dice_sides_str} " adv"{adv_dice_count_str} " + "{modifier_str}
+            </p>
+            <HomogeneousDiceInputPanel
+                dice_sides=dice_sides
+                dice_count=dice_count
+                adv_dice_count=adv_dice_count
+                modifier=modifier
+            />
         }
     });
 }
 
 #[component]
-fn HomogeneousDiceInputPanel(dice_sides: RwSignal<Result<u32, ParseIntError>>) -> impl IntoView {
-    // let set_dice_sides_str = set_dice_sides.clone();
-    // let (dice_count, set_dice_count) = signal(1u32);
-    // let (dice_drop_count, set_dice_drop_count) = signal(0i32);
-    // let (dice_modifier, set_dice_modifier) = signal(0i32);
-
+fn HomogeneousDiceInputPanel(
+    dice_sides: RwSignal<Result<i32, ParseIntError>>,
+    dice_count: RwSignal<Result<i32, ParseIntError>>,
+    adv_dice_count: RwSignal<Result<i32, ParseIntError>>,
+    modifier: RwSignal<Result<i32, ParseIntError>>,
+) -> impl IntoView {
     view! {
         <DiscreteRangeAndNumberInput
             value=dice_sides
@@ -33,15 +64,18 @@ fn HomogeneousDiceInputPanel(dice_sides: RwSignal<Result<u32, ParseIntError>>) -
             min=2
             max=100
         />
+        <NumberInput value=dice_count min=0 max=999 />
+        <NumberInput value=adv_dice_count min=-999 max=999 />
+        <NumberInput value=modifier min=-999 max=999 />
     }
 }
 
 #[component]
 fn DiscreteRangeAndNumberInput(
-    value: RwSignal<Result<u32, ParseIntError>>,
-    options: &'static [u32],
-    #[prop(default = u32::MIN)] min: u32,
-    #[prop(default = u32::MAX)] max: u32,
+    value: RwSignal<Result<i32, ParseIntError>>,
+    options: &'static [i32],
+    #[prop(default = i32::MIN)] min: i32,
+    #[prop(default = i32::MAX)] max: i32,
 ) -> impl IntoView {
     let options_len = options.len();
     let range_index = RwSignal::new(0);
@@ -74,15 +108,15 @@ fn DiscreteRangeAndNumberInput(
 
 #[component]
 fn NumberInput(
-    value: RwSignal<Result<u32, ParseIntError>>,
-    #[prop(default = u32::MIN)] min: u32,
-    #[prop(default = u32::MAX)] max: u32,
+    value: RwSignal<Result<i32, ParseIntError>>,
+    #[prop(default = i32::MIN)] min: i32,
+    #[prop(default = i32::MAX)] max: i32,
 ) -> impl IntoView {
     view! {
         <input
             type="number"
             on:input:target=move |ev| {
-                value.set(ev.target().value().parse::<u32>());
+                value.set(ev.target().value().parse::<i32>());
             }
             prop:value=move || value.with(|x| x.as_ref().unwrap_or(&min).to_string())
             min=min

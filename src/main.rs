@@ -3,43 +3,12 @@ use std::num::ParseIntError;
 
 fn main() {
     let dice_sides = RwSignal::new(Ok(6));
-    let dice_sides_str = move || {
-        dice_sides.with(|x| {
-            x.as_ref()
-                .map(|x| x.to_string())
-                .unwrap_or("Err".to_string())
-        })
-    };
     let dice_count = RwSignal::new(Ok(1));
-    let dice_count_str = move || {
-        dice_count.with(|x| {
-            x.as_ref()
-                .map(|x| x.to_string())
-                .unwrap_or("Err".to_string())
-        })
-    };
     let adv_dice_count = RwSignal::new(Ok(0));
-    let adv_dice_count_str = move || {
-        adv_dice_count.with(|x| {
-            x.as_ref()
-                .map(|x| x.to_string())
-                .unwrap_or("Err".to_string())
-        })
-    };
     let modifier = RwSignal::new(Ok(0));
-    let modifier_str = move || {
-        modifier.with(|x| {
-            x.as_ref()
-                .map(|x| x.to_string())
-                .unwrap_or("Err".to_string())
-        })
-    };
 
     mount_to_body(move || {
         view! {
-            <p>
-                {dice_count_str}"d"{dice_sides_str} " adv"{adv_dice_count_str} " + "{modifier_str}
-            </p>
             <HomogeneousDiceInputPanel
                 dice_sides=dice_sides
                 dice_count=dice_count
@@ -57,16 +26,48 @@ fn HomogeneousDiceInputPanel(
     adv_dice_count: RwSignal<Result<i32, ParseIntError>>,
     modifier: RwSignal<Result<i32, ParseIntError>>,
 ) -> impl IntoView {
+    let dice_sides_str = move || {
+        dice_sides.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+    let dice_count_str = move || {
+        dice_count.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+    let adv_dice_count_str = move || {
+        adv_dice_count.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+    let modifier_str = move || {
+        modifier.with(|x| {
+            x.as_ref()
+                .map(|x| x.to_string())
+                .unwrap_or("Err".to_string())
+        })
+    };
+
     view! {
-        <DiscreteRangeAndNumberInput
-            value=dice_sides
-            options=&[2, 4, 6, 8, 10, 12, 20, 100]
-            min=2
-            max=100
-        />
-        <NumberInput value=dice_count min=0 max=999 />
-        <NumberInput value=adv_dice_count min=-999 max=999 />
-        <NumberInput value=modifier min=-999 max=999 />
+        <p>{dice_count_str}"d"{dice_sides_str} " adv"{adv_dice_count_str} " + "{modifier_str}</p>
+        <div>
+            <DiscreteRangeAndNumberInput
+                value=dice_sides
+                options=&[2, 4, 6, 8, 10, 12, 20, 100]
+                min=2
+                max=100
+            />
+            <NumberInput value=dice_count min=0 max=999 />
+            <NumberInput value=adv_dice_count min=-999 max=999 />
+            <NumberInput value=modifier min=-999 max=999 />
+        </div>
     }
 }
 

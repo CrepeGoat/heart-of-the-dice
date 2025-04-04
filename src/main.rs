@@ -55,8 +55,18 @@ fn HomogeneousDiceInputPanel(
         })
     };
 
+    let label_str = move || {
+        format!(
+            "{dcount}d{dsides} adv{adv_dcount} + {modifier}",
+            dcount = dice_count_str(),
+            dsides = dice_sides_str(),
+            adv_dcount = adv_dice_count_str(),
+            modifier = modifier_str(),
+        )
+    };
+
     view! {
-        <p>{dice_count_str}"d"{dice_sides_str} " adv"{adv_dice_count_str} " + "{modifier_str}</p>
+        <p>{label_str}</p>
         <div>
             <DiscreteRangeAndNumberInput
                 value=dice_sides

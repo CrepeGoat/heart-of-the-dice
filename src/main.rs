@@ -2,6 +2,8 @@ use leptos::prelude::*;
 use leptos_chartistry::*;
 use std::num::ParseIntError;
 
+mod distributions;
+
 fn main() {
     let dice_sides = RwSignal::new(Ok(6));
     let dice_count = RwSignal::new(Ok(1));

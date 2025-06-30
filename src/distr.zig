@@ -1,5 +1,42 @@
 const std = @import("std");
 
+pub fn Dice(X: type, Y: type) type {
+    const SeqWOffset = SequenceWithOffset(X, Y);
+    const Result = std.mem.Allocator.Error!SeqWOffset;
+
+    return struct {
+        pub fn roll_0(allocator: std.mem.Allocator) Result {
+            const buffer = try allocator.alloc(Y, 1);
+            @memset(buffer, 1);
+            return SeqWOffset{ .index_first = 0, .seq = buffer };
+        }
+
+        pub fn roll_1dn(allocator: std.mem.Allocator, n: X) Result {
+            const buffer = try allocator.alloc(Y, @intCast(n));
+            @memset(buffer, 1);
+            return SeqWOffset{ .index_first = 1, .seq = buffer };
+        }
+
+        pub fn roll_kdn(allocator: std.mem.Allocator, k: X, n: X) Result {
+            const delta = roll_1dn(allocator, n);
+            defer delta.deinit(allocator);
+
+            const result = try roll_0(allocator);
+            const result_tmp = undefined;
+
+            for (0..k) |_| {
+                std.mem.swap(SeqWOffset, &result_tmp, &result);
+                result = delta.addDistr(allocator, result.tmp);
+
+                result_tmp.deinit(allocator);
+                result_tmp = undefined;
+            }
+
+            return result;
+        }
+    };
+}
+
 test "SequenceWithOffset.addDistr" {
     const SeqWOffset = SequenceWithOffset(isize, i32);
     const allocator = std.testing.allocator;

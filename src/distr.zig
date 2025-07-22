@@ -269,7 +269,7 @@ test "SequenceWithOffset.scaleBy" {
 /// in the arrays, and also allows arrays to start before zero.
 pub fn SequenceWithOffset(X: type, Y: type) type {
     switch (@typeInfo(X)) {
-        .Int => {},
+        .int => {},
         else => unreachable,
     }
 

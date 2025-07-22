@@ -32,37 +32,41 @@ test "CountDiceOutcomes - roll4d6" {
     const result = try CDO.rollKTimes(allocator, r1, 4);
     defer result.deinit(allocator);
 
-    const brute_result = try test_brute_force_distr_4d6(allocator, struct {
-        pub fn f(v1: u64, v2: u64, v3: u64, v4: u64) u64 {
-            return v1 + v2 + v3 + v4;
+    const brute_result = try test_brute_force_distr(allocator, struct {
+        pub fn f(v: []const u64) u64 {
+            var sum: u64 = 0;
+            for (v) |vi| {
+                sum += vi + 1;
+            }
+            return sum;
         }
-    }.f);
+    }.f, 4, 6);
     defer brute_result.deinit(allocator);
 
     try std.testing.expectEqual(brute_result.index_first, result.index_first);
     try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
 }
 
-fn test_brute_force_distr_4d6(
+fn test_brute_force_distr(
     allocator: std.mem.Allocator,
     mapFn: anytype,
+    dice_count: u64,
+    dice_sides: u64,
 ) !SequenceWithOffset(usize, u64) {
-    const dice_sides: u64 = 6;
     var values = std.ArrayList(u64).init(allocator);
 
-    for (1..dice_sides + 1) |v1| {
-        for (1..dice_sides + 1) |v2| {
-            for (1..dice_sides + 1) |v3| {
-                for (1..dice_sides + 1) |v4| {
-                    const value = mapFn(v1, v2, v3, v4);
-                    const value_usize = @as(usize, @intCast(value));
-                    if (value_usize >= values.items.len) {
-                        try values.appendNTimes(0, 1 + value_usize - values.items.len);
-                    }
-                    values.items[value_usize] += 1;
-                }
-            }
+    const buffer = try allocator.alloc(u64, dice_count);
+    defer allocator.free(buffer);
+    var iter = NestedRangeIterator.init(buffer, dice_sides - 1);
+    while (true) {
+        const value = mapFn(iter.get());
+        const value_usize = @as(usize, @intCast(value));
+        if (value_usize >= values.items.len) {
+            try values.appendNTimes(0, 1 + value_usize - values.items.len);
         }
+        values.items[value_usize] += 1;
+
+        if (!iter.increment()) break;
     }
 
     const i = for (0..values.items.len) |i| {
@@ -72,6 +76,82 @@ fn test_brute_force_distr_4d6(
 
     return .{ .index_first = i, .seq = try values.toOwnedSlice() };
 }
+
+test NestedRangeIterator {
+    const allocator = std.testing.allocator;
+    const buffer = try allocator.alloc(u64, 3);
+    defer allocator.free(buffer);
+
+    var iter = NestedRangeIterator.init(buffer, 1);
+
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 0, 0, 0 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 0, 0, 1 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 0, 1, 1 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 0, 1, 0 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 1, 1, 0 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 1, 1, 1 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 1, 0, 1 }, iter.get());
+    try std.testing.expect(iter.increment());
+    try std.testing.expectEqualSlices(u64, &[_]u64{ 1, 0, 0 }, iter.get());
+    try std.testing.expect(!iter.increment());
+}
+
+const NestedRangeIterator = struct {
+    buffer: []u64,
+    count: u64,
+
+    const Self = @This();
+
+    pub fn init(buffer: []u64, count: u64) Self {
+        @memset(buffer, 0);
+        return .{ .buffer = buffer, .count = count };
+    }
+
+    pub fn get(self: Self) []const u64 {
+        return self.buffer;
+    }
+
+    pub fn increment(self: *Self) bool {
+        return self.increment_inner(true);
+    }
+
+    fn increment_inner(self: *Self, is_positive: bool) bool {
+        if (self.buffer.len == 0) {
+            return false;
+        }
+        const end_value = if (is_positive) self.count else 0;
+        const next_is_positive = is_positive == (self.buffer[0] % 2 == 0);
+
+        {
+            var buffer = self.buffer;
+            self.buffer = buffer[1..];
+            defer self.buffer = buffer;
+
+            if (self.increment_inner(next_is_positive)) {
+                return true;
+            }
+        }
+
+        if (self.buffer[0] > self.count) {
+            unreachable;
+        } else if (self.buffer[0] == end_value) {
+            return false;
+        } else {
+            if (is_positive) {
+                self.buffer[0] += 1;
+            } else {
+                self.buffer[0] -= 1;
+            }
+            return true;
+        }
+    }
+};
 
 pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
     const SeqWOffset = SequenceWithOffset(X, Y);

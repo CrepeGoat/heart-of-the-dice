@@ -1,7 +1,7 @@
 const std = @import("std");
 
 test "CountDiceOutcomes.roll0" {
-    const CDO = CountDiceOutcomes(i32, usize, u64);
+    const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
     const result = try CDO.roll0(allocator);
@@ -11,7 +11,7 @@ test "CountDiceOutcomes.roll0" {
 }
 
 test "CountDiceOutcomes.roll1dn" {
-    const CDO = CountDiceOutcomes(i32, usize, u64);
+    const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
     inline for (0..10) |n| {
@@ -23,41 +23,46 @@ test "CountDiceOutcomes.roll1dn" {
     }
 }
 
-test "CountDiceOutcomes - roll4d6" {
-    const CDO = CountDiceOutcomes(i32, usize, u64);
+test "CountDiceOutcomes - rollkdn" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
-    const r1 = try CDO.roll1dn(allocator, 6);
-    defer r1.deinit(allocator);
-    const result = try CDO.rollKTimes(allocator, r1, 4);
-    defer result.deinit(allocator);
+    var k: u32 = 1;
+    while (k <= 5) : (k += 1) {
+        for (1..10) |n| {
+            const r1 = try CDO.roll1dn(allocator, n);
+            const result = try CDO.rollKTimes(allocator, r1, k);
+            r1.deinit(allocator);
+            defer result.deinit(allocator);
 
-    const brute_result = try test_brute_force_distr(allocator, struct {
-        pub fn f(v: []const u64) u64 {
-            var sum: u64 = 0;
-            for (v) |vi| {
-                sum += vi + 1;
-            }
-            return sum;
+            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+                pub fn f(v: []const u64) u64 {
+                    var sum: u64 = 0;
+                    for (v) |vi| {
+                        sum += vi + 1; // add one, since sides start at 1 but `NestedRangeIterator` starts at 0
+                    }
+                    return sum;
+                }
+            }.f, k, n);
+            defer brute_result.deinit(allocator);
+
+            try std.testing.expectEqual(brute_result.index_first, result.index_first);
+            try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
         }
-    }.f, 4, 6);
-    defer brute_result.deinit(allocator);
-
-    try std.testing.expectEqual(brute_result.index_first, result.index_first);
-    try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
+    }
 }
 
-fn test_brute_force_distr(
+fn generate_distr_by_brute_force(
     allocator: std.mem.Allocator,
     mapFn: anytype,
-    dice_count: u64,
-    dice_sides: u64,
+    k: u32,
+    n: u64,
 ) !SequenceWithOffset(usize, u64) {
     var values = std.ArrayList(u64).init(allocator);
 
-    const buffer = try allocator.alloc(u64, dice_count);
+    const buffer = try allocator.alloc(u64, k);
     defer allocator.free(buffer);
-    var iter = NestedRangeIterator.init(buffer, dice_sides - 1);
+    var iter = NestedRangeIterator.init(buffer, n - 1);
     while (true) {
         const value = mapFn(iter.get());
         const value_usize = @as(usize, @intCast(value));

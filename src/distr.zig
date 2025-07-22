@@ -52,6 +52,32 @@ test "CountDiceOutcomes - rollkdn" {
     }
 }
 
+test "CountDiceOutcomes - roll4d6 drop highest" {
+    const CDO = CountDiceOutcomes(i32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const r1 = try CDO.roll1dn(allocator, 6);
+    defer r1.deinit(allocator);
+    const result = try CDO.rollKTimesDropHigh(allocator, r1, 4, 1);
+    defer result.deinit(allocator);
+
+    const brute_result = try generate_distr_by_brute_force(allocator, struct {
+        pub fn f(v: []const u64) u64 {
+            var sum: u64 = 0;
+            var max = v[0] + 1;
+            for (v) |vi| {
+                sum += vi + 1; // add one, since sides start at 1 but `NestedRangeIterator` starts at 0
+                max = @max(max, vi + 1);
+            }
+            return sum - max;
+        }
+    }.f, 4, 6);
+    defer brute_result.deinit(allocator);
+
+    try std.testing.expectEqual(brute_result.index_first, result.index_first);
+    try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
+}
+
 fn generate_distr_by_brute_force(
     allocator: std.mem.Allocator,
     mapFn: anytype,
@@ -200,34 +226,35 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
         ) std.mem.Allocator.Error!SeqWOffset {
             const inner_func = struct {
                 pub fn func(
+                    _allocator: std.mem.Allocator,
                     n: X,
                     k: D,
                     d: D,
                 ) Result {
                     if (n == 1) {
                         return SeqWOffset.initSingle(
-                            allocator,
+                            _allocator,
                             roll1.index_first * @as(X, @intCast(k - d)),
                             try std.math.powi(roll1.seq[0], @intCast(k)),
                         );
                     }
                     if (d == 0) {
-                        if (k == 0) return roll0(allocator);
+                        if (k == 0) return roll0(_allocator);
                         const result_n_1_0 = try {
-                            var buffer = try allocator.alloc(Y, n);
+                            var buffer = try _allocator.alloc(Y, n);
                             @memcpy(&buffer, &roll1.seq[0..n]);
                             return SeqWOffset{ .index_first = roll1.index_first, .seq = buffer };
                         };
                         if (k == 1) return result_n_1_0;
-                        defer result_n_1_0.deinit(allocator);
+                        defer result_n_1_0.deinit(_allocator);
 
-                        return rollKTimes(allocator, result_n_1_0, k);
+                        return rollKTimes(_allocator, result_n_1_0, k);
                     }
 
-                    var result = try roll1dn(allocator, n);
+                    var result = try roll1dn(_allocator, n);
                     for (0..d) |j| { // j = the number of fixed dice
                         const tmp = func(
-                            allocator,
+                            _allocator,
                             n - 1,
                             k - j,
                             d - j,
@@ -237,14 +264,14 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
                                 try std.math.powi(roll1.seq[n - 1], @intCast(j)),
                             ),
                         );
-                        const result2 = result.addDistr(allocator, tmp);
-                        result.deinit(allocator);
-                        tmp.deinit(allocator);
+                        const result2 = result.addDistr(_allocator, tmp);
+                        result.deinit(_allocator);
+                        tmp.deinit(_allocator);
                         result = result2;
                     }
                     for (d..k + 1) |j| { // j = the number of fixed dice
                         const tmp = func(
-                            allocator,
+                            _allocator,
                             n - 1,
                             k - j,
                             d - j,
@@ -257,9 +284,9 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
                             @as(X, @intCast(j - d)),
                             try std.math.add(roll1.index_first, n - 1),
                         ));
-                        const result2 = result.addDistr(allocator, tmp);
-                        result.deinit(allocator);
-                        tmp.deinit(allocator);
+                        const result2 = result.addDistr(_allocator, tmp);
+                        result.deinit(_allocator);
+                        tmp.deinit(_allocator);
                         result = result2;
                     }
 
@@ -267,7 +294,7 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
                 }
             }.func;
 
-            return inner_func(roll1.seq.len, dice_count, drop_count);
+            return inner_func(allocator, roll1.seq.len, dice_count, drop_count);
         }
     };
 }

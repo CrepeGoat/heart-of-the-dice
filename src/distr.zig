@@ -52,9 +52,43 @@ test "CountDiceOutcomes - rollkdn" {
     }
 }
 
+test "CountDiceOutcomes - roll kd6 drop highest d" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const r1 = try CDO.roll1dn(allocator, 6);
+    defer r1.deinit(allocator);
+
+    inline for (1..4) |k| {
+        inline for (1..3) |d| {
+            const result = try CDO.rollKTimesDropHigh(allocator, r1, @intCast(k), @intCast(d));
+            defer result.deinit(allocator);
+
+            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+                pub fn f(v: []const u64) u64 {
+                    var sorted = allocator.alloc(u64, v.len) catch unreachable;
+                    defer allocator.free(sorted);
+                    @memcpy(sorted, v);
+                    std.mem.sort(u64, sorted, {}, std.sort.desc(u64));
+
+                    var sum: u64 = 0;
+                    for (sorted[d..]) |vi| {
+                        sum += vi + 1; // add one, since sides start at 1 but `NestedRangeIterator` starts at 0
+                    }
+                    return sum;
+                }
+            }.f, @intCast(k + d), 6);
+            defer brute_result.deinit(allocator);
+
+            try std.testing.expectEqual(brute_result.index_first, result.index_first);
+            try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
+        }
+    }
+}
+
 fn generate_distr_by_brute_force(
     allocator: std.mem.Allocator,
-    mapFn: anytype,
+    mapFn: fn (v: []const u64) u64,
     k: u32,
     n: u64,
 ) !SequenceWithOffset(usize, u64) {
@@ -195,79 +229,71 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
         pub fn rollKTimesDropHigh(
             allocator: std.mem.Allocator,
             roll1: SeqWOffset,
-            dice_count: D,
+            keep_count: D,
             drop_count: D,
-        ) std.mem.Allocator.Error!SeqWOffset {
-            const inner_func = struct {
-                pub fn func(
-                    n: X,
-                    k: D,
-                    d: D,
-                ) Result {
-                    if (n == 1) {
-                        return SeqWOffset.initSingle(
-                            allocator,
-                            roll1.index_first * @as(X, @intCast(k - d)),
-                            try std.math.powi(roll1.seq[0], @intCast(k)),
-                        );
-                    }
-                    if (d == 0) {
-                        if (k == 0) return roll0(allocator);
-                        const result_n_1_0 = try {
-                            var buffer = try allocator.alloc(Y, n);
-                            @memcpy(&buffer, &roll1.seq[0..n]);
-                            return SeqWOffset{ .index_first = roll1.index_first, .seq = buffer };
-                        };
-                        if (k == 1) return result_n_1_0;
-                        defer result_n_1_0.deinit(allocator);
+        ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
+            const dice_count: usize = @intCast(keep_count + drop_count);
 
-                        return rollKTimes(allocator, result_n_1_0, k);
-                    }
+            var dp1 = try allocator.alloc(SeqWOffset, dice_count + 1);
+            defer allocator.free(dp1);
+            var dp2 = try allocator.alloc(SeqWOffset, dice_count + 1);
+            defer allocator.free(dp2);
 
-                    var result = try roll1dn(allocator, n);
-                    for (0..d) |j| { // j = the number of fixed dice
-                        const tmp = func(
-                            allocator,
-                            n - 1,
-                            k - j,
-                            d - j,
-                        ).scaleBy(
-                            try std.math.mul(
-                                try binomial(Y, @intCast(n), @intCast(k)),
-                                try std.math.powi(roll1.seq[n - 1], @intCast(j)),
-                            ),
-                        );
-                        const result2 = result.addDistr(allocator, tmp);
-                        result.deinit(allocator);
-                        tmp.deinit(allocator);
-                        result = result2;
-                    }
-                    for (d..k + 1) |j| { // j = the number of fixed dice
-                        const tmp = func(
-                            allocator,
-                            n - 1,
-                            k - j,
-                            d - j,
-                        ).scaleBy(
-                            try std.math.mul(
-                                try binomial(Y, @intCast(n), @intCast(k)),
-                                try std.math.powi(roll1.seq[n - 1], @intCast(j)),
-                            ),
-                        ).biasBy(try std.math.mul(
-                            @as(X, @intCast(j - d)),
-                            try std.math.add(roll1.index_first, n - 1),
+            std.debug.assert(dp1.len > 0);
+            var i1_alloc: usize = 0;
+            defer for (0..i1_alloc) |i| {
+                dp1[i].deinit(allocator);
+            };
+
+            dp1[0] = try roll0(allocator);
+            i1_alloc = 1;
+            for (1..dp1.len) |i| {
+                dp1[i] = try roll1dn(allocator, 0);
+                i1_alloc = i + 1;
+            }
+
+            for (1..roll1.seq.len + 1) |n| {
+                std.mem.swap(@TypeOf(dp1), &dp1, &dp2);
+                i1_alloc = 0;
+                defer for (0..dp2.len) |i| {
+                    dp2[i].deinit(allocator);
+                };
+
+                dp1[0] = try roll0(allocator);
+                i1_alloc = 1;
+
+                for (1..dp1.len) |i| {
+                    const drop_i = std.math.sub(usize, i, keep_count) catch 0;
+
+                    dp1[i] = try roll1dn(allocator, 0);
+                    i1_alloc = i + 1;
+
+                    for (0..i + 1) |j| {
+                        var tmp = try dp2[i - j].copy(allocator);
+                        defer tmp.deinit(allocator);
+
+                        try tmp.biasBy(try std.math.mul(
+                            X,
+                            @intCast(std.math.sub(usize, j, drop_i) catch 0),
+                            try std.math.add(X, roll1.index_first, @intCast(n - 1)),
                         ));
-                        const result2 = result.addDistr(allocator, tmp);
-                        result.deinit(allocator);
-                        tmp.deinit(allocator);
-                        result = result2;
+                        try tmp.scaleBy(
+                            try std.math.mul(
+                                Y,
+                                try binomial(Y, @intCast(i), @intCast(j)),
+                                try powi_noUnderflow(Y, roll1.seq[n - 1], @intCast(j)),
+                            ),
+                        );
+
+                        const result = try dp1[i].addValues(allocator, tmp);
+                        dp1[i].deinit(allocator);
+                        dp1[i] = result;
                     }
-
-                    return result;
                 }
-            }.func;
+            }
 
-            return inner_func(roll1.seq.len, dice_count, drop_count);
+            i1_alloc = dp1.len - 1;
+            return dp1[dp1.len - 1];
         }
     };
 }
@@ -511,10 +537,18 @@ fn binomial(T: type, n: T, k: T) !T {
     if (k > n - k) {
         return binomial(T, n, n - k);
     }
-    var result = 1;
+    var result: T = 1;
     for (0..k) |ki| {
-        result = try std.math.mul(n - ki);
-        result /= try std.math.divExact(ki + 1);
+        result = try std.math.mul(T, result, n - ki);
+        result = std.math.divExact(T, result, ki + 1) catch unreachable;
     }
     return result;
+}
+
+fn powi_noUnderflow(comptime T: type, x: T, y: T) (error{Overflow}!T) {
+    std.debug.assert(y >= 0);
+    return std.math.powi(T, x, y) catch |err| switch (err) {
+        error.Underflow => unreachable,
+        error.Overflow => return error.Overflow,
+    };
 }

@@ -92,11 +92,11 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
 
     @functools.lru_cache(maxsize=None)
     def inner(n: int, k: int, drop: int):
-        if n == 1:
-            return roll_0().bias_by(roll_1.offset * (k - drop)) * (roll_1.seq[0] ** k)
+        if k == 0:
+            return roll_0()
+        if n == 0:
+            return roll_1dn(0)
         if drop == 0:
-            if k == 0:
-                return roll_0()
             if k == 1:
                 return SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
             return inner(n=n, k=1, drop=0).convolve(inner(n=n, k=k - 1, drop=0))

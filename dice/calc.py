@@ -87,11 +87,14 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
 
     # Rename outer function parameters to avoid naming collisions with inner
     # function parameters.
+    non_drop = k - drop
     _k, _drop = k, drop
     del k, drop
 
     @functools.lru_cache(maxsize=None)
-    def inner(n: int, k: int, drop: int):
+    def inner(n: int, k: int):
+        drop = max(0, k - non_drop)
+
         if k == 0:
             return roll_0()
         if n == 0:
@@ -99,20 +102,18 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
         if drop == 0:
             if k == 1:
                 return SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
-            return inner(n=n, k=1, drop=0).convolve(inner(n=n, k=k - 1, drop=0))
+            return inner(n=n, k=1).convolve(inner(n=n, k=k - 1))
 
         result = roll_1dn(0)
         for j in range(k + 1):  # j - the number of fixed dice
             result = result.consolidate(
-                inner(n - 1, k - j, max(0, drop - j)).bias_by(
-                    max(0, j - drop) * (n - 1 + roll_1.offset)
-                )
+                inner(n - 1, k - j).bias_by(max(0, j - drop) * (n - 1 + roll_1.offset))
                 * math.comb(k, j)
                 * (roll_1.seq[n - 1] ** j)
             )
         return result
 
-    return inner(n=len(roll_1.seq), k=_k, drop=_drop)
+    return inner(n=len(roll_1.seq), k=_k)
 
 
 def roll_k(roll_1: SequenceWithOffset, k: int):

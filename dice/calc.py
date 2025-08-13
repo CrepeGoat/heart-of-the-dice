@@ -99,10 +99,6 @@ def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
             return roll_0()
         if n == 0:
             return roll_1dn(0)
-        if drop == 0:
-            if k == 1:
-                return SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
-            return inner(n=n, k=1).convolve(inner(n=n, k=k - 1))
 
         result = roll_1dn(0)
         for j in range(k + 1):  # j - the number of fixed dice

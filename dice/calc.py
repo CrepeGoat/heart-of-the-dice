@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import math
 from dataclasses import dataclass
 
@@ -84,39 +83,29 @@ def roll_k_droplow(roll_1: SequenceWithOffset, k: int, drop: int):
 
 def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
     assert drop > 0
+    assert drop <= k
+    non_drop = k - drop
 
-    # Rename outer function parameters to avoid naming collisions with inner
-    # function parameters.
-    _k, _drop = k, drop
-    del k, drop
+    dp1 = [roll_0()] + [roll_1dn(0) for _ in range(k)]
+    dp2 = [None for _ in range(k + 1)]
+    for n in range(1, len(roll_1.seq) + 1):
+        dp2, dp1 = dp1, dp2
+        # dp2[i] := roll_k_drophigh(roll_1[:n-1], k=i, drop=clip(i - non_drop))
+        # dp1[i] <= roll_k_drophigh(roll_1[:n], k=i, drop=clip(i - non_drop))
 
-    @functools.lru_cache(maxsize=None)
-    def inner(n: int, k: int, drop: int):
-        if n == 1:
-            return roll_0().bias_by(roll_1.offset * (k - drop)) * (roll_1.seq[0] ** k)
-        if drop == 0:
-            if k == 0:
-                return roll_0()
-            if k == 1:
-                return SequenceWithOffset(seq=roll_1.seq[:n], offset=roll_1.offset)
-            return inner(n=n, k=1, drop=0).convolve(inner(n=n, k=k - 1, drop=0))
+        dp1[0] = roll_0()
+        for i in range(1, k + 1):
+            drop_i = max(0, i - non_drop)
 
-        result = roll_1dn(0)
-        for j in range(drop):  # j - the number of fixed dice
-            result = result.consolidate(
-                inner(n - 1, k - j, drop - j)
-                * math.comb(k, j)
-                * (roll_1.seq[n - 1] ** j)
-            )
-        for j in range(drop, k + 1):  # j - the number of fixed dice
-            result = result.consolidate(
-                inner(n - 1, k - j, 0).bias_by((j - drop) * (n - 1 + roll_1.offset))
-                * math.comb(k, j)
-                * (roll_1.seq[n - 1] ** j)
-            )
-        return result
+            dp1[i] = roll_1dn(0)
+            for j in range(i + 1):
+                dp1[i] = dp1[i].consolidate(
+                    dp2[i - j].bias_by(max(0, j - drop_i) * (n - 1 + roll_1.offset))
+                    * math.comb(i, j)
+                    * (roll_1.seq[n - 1] ** j)
+                )
 
-    return inner(n=len(roll_1.seq), k=_k, drop=_drop)
+    return dp1[-1]
 
 
 def roll_k(roll_1: SequenceWithOffset, k: int):

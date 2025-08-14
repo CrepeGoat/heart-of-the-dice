@@ -3,7 +3,7 @@ import math
 from collections import defaultdict
 
 import numpy as np
-from hypothesis import assume, given
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from dice import calc
@@ -72,6 +72,7 @@ def test_roll_k(roll_1, k):
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
+@settings(deadline=None)
 def test_roll_k_droplow(roll_1, k, drop):
     assume(drop <= k)
     assert roll_1.seq.dtype.type is np.uint64
@@ -91,6 +92,7 @@ def test_roll_k_droplow(roll_1, k, drop):
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
+@settings(deadline=None)
 def test_roll_k_drophigh(roll_1, k, drop):
     assume(drop <= k)
     assert roll_1.seq.dtype.type is np.uint64

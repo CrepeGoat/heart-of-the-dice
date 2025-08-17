@@ -83,19 +83,18 @@ def roll_k_droplow(roll_1: SequenceWithOffset, k: int, drop: int):
 
 def roll_k_drophigh(roll_1: SequenceWithOffset, k: int, drop: int):
     assert drop > 0
-    assert drop <= k
-    non_drop = k - drop
+    k_total = k + drop
 
-    dp1 = [roll_0()] + [roll_1dn(0) for _ in range(k)]
-    dp2 = [None for _ in range(k + 1)]
+    dp1 = [roll_0()] + [roll_1dn(0) for _ in range(k_total)]
+    dp2 = [None for _ in range(k_total + 1)]
     for n in range(1, len(roll_1.seq) + 1):
         dp2, dp1 = dp1, dp2
-        # dp2[i] := roll_k_drophigh(roll_1[:n-1], k=i, drop=clip(i - non_drop))
-        # dp1[i] <= roll_k_drophigh(roll_1[:n], k=i, drop=clip(i - non_drop))
+        # dp2[i] := roll_k_drophigh(roll_1[:n-1], k=i, drop=clip(i - k))
+        # dp1[i] <= roll_k_drophigh(roll_1[:n], k=i, drop=clip(i - k))
 
         dp1[0] = roll_0()
-        for i in range(1, k + 1):
-            drop_i = max(0, i - non_drop)
+        for i in range(1, k_total + 1):
+            drop_i = max(0, i - k)
 
             dp1[i] = roll_1dn(0)
             for j in range(i + 1):

@@ -72,16 +72,17 @@ def test_roll_k(roll_1, k):
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
-@settings(deadline=None)
-def test_roll_k_droplow(roll_1, k, drop):
-    assume(drop <= k)
+@settings(deadline=1000)
+def test_roll_k_droplow(roll_1, k_total, drop):
+    assume(drop <= k_total)
+    k = k_total - drop
     assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_droplow(roll_1, k, drop)
     assert result.seq.dtype.type is np.uint64
-    assert result.seq.sum() == roll_1.seq.sum() ** k
+    assert result.seq.sum() == roll_1.seq.sum() ** (k + drop)
 
     calc_counts = collect_outcomes(generate_outcomes(result))
-    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k)
+    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k + drop)
     expt_events = [sum(sorted(i)[drop:]) for i in expt_outcomes]
     expt_counts = collect_outcomes(expt_events)
     assert calc_counts == expt_counts
@@ -92,16 +93,17 @@ def test_roll_k_droplow(roll_1, k, drop):
     st.integers(min_value=1, max_value=5),
     st.integers(min_value=1, max_value=3),
 )
-@settings(deadline=None)
-def test_roll_k_drophigh(roll_1, k, drop):
-    assume(drop <= k)
+@settings(deadline=1000)
+def test_roll_k_drophigh(roll_1, k_total, drop):
+    assume(drop <= k_total)
+    k = k_total - drop
     assert roll_1.seq.dtype.type is np.uint64
     result = calc.roll_k_drophigh(roll_1, k, drop)
     assert result.seq.dtype.type is np.uint64
-    assert result.seq.sum() == roll_1.seq.sum() ** k
+    assert result.seq.sum() == roll_1.seq.sum() ** (k + drop)
 
     calc_counts = collect_outcomes(generate_outcomes(result))
-    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k)
+    expt_outcomes = itertools.product(generate_outcomes(roll_1), repeat=k + drop)
     expt_events = [sum(sorted(i)[:-drop]) for i in expt_outcomes]
     expt_counts = collect_outcomes(expt_events)
     assert calc_counts == expt_counts
@@ -121,18 +123,17 @@ def test_d2_roll_k(k):
 def test_d2_roll_k_droplow_all_but_1(drop):
     roll_1 = calc.roll_1dn(2)
     assert roll_1.seq.dtype.type is np.uint64
-    k = drop + 1
 
-    result = calc.roll_k_droplow(roll_1, k, drop)
+    result = calc.roll_k_droplow(roll_1, k=1, drop=drop)
     assert result.seq.dtype.type is np.uint64
-    assert np.all(result.seq == [1, 2**k - 1])
+    assert np.all(result.seq == [1, 2 ** (drop + 1) - 1])
     assert result.offset == 1
 
 
 def test_4d6_droplow():
     roll_1 = calc.roll_1dn(6)
     assert roll_1.seq.dtype.type is np.uint64
-    result = calc.roll_k_droplow(roll_1, 4, 1)
+    result = calc.roll_k_droplow(roll_1, 3, 1)
     assert result.seq.dtype.type is np.uint64
 
     assert result.offset == 3

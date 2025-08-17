@@ -66,9 +66,9 @@ def make_dice_label(count_keep, count_drop, sides, bias):
 def calc_prob(keep, d_sides, d_bias, drop):
     dist1 = calc.roll_1dn(d_sides)
     if drop > 0:
-        dist = calc.roll_k_drophigh(dist1, keep + drop, drop)
+        dist = calc.roll_k_drophigh(dist1, keep, drop)
     elif drop < 0:
-        dist = calc.roll_k_droplow(dist1, keep - drop, -drop)
+        dist = calc.roll_k_droplow(dist1, keep, -drop)
     else:
         dist = calc.roll_k(dist1, keep)
 

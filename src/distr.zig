@@ -301,11 +301,21 @@ test "SequenceWithOffset.addValues" {
     const seq1 = SeqWOffset{ .index_first = 1, .seq = buffer[0..4] };
     const seq2 = SeqWOffset{ .index_first = 0, .seq = buffer[4..] };
 
-    const result = try seq1.addValues(allocator, seq2);
-    defer result.deinit(allocator);
+    {
+        const result = try seq1.addValues(allocator, seq2);
+        defer result.deinit(allocator);
 
-    try std.testing.expectEqual(0, result.index_first);
-    try std.testing.expectEqualSlices(i32, &[_]i32{ 5, 7, 9, 3, 4 }, result.seq);
+        try std.testing.expectEqual(0, result.index_first);
+        try std.testing.expectEqualSlices(i32, &[_]i32{ 5, 7, 9, 3, 4 }, result.seq);
+    }
+
+    {
+        const result = try seq2.addValues(allocator, seq1);
+        defer result.deinit(allocator);
+
+        try std.testing.expectEqual(0, result.index_first);
+        try std.testing.expectEqualSlices(i32, &[_]i32{ 5, 7, 9, 3, 4 }, result.seq);
+    }
 }
 
 test "SequenceWithOffset.biasBy" {
@@ -418,9 +428,16 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             var seq = try allocator.alloc(Y, @intCast(index_high - index_low));
 
             @memset(seq, 0);
-            @memcpy(seq[@as(usize, @intCast(self.index_first - index_low))..], self.seq);
-            for (other.seq, @as(usize, @intCast(other.index_first - index_low))..) |si, i| {
-                seq[i] += si;
+            {
+                const index1 = @as(usize, @intCast(self.index_first - index_low));
+                const index2 = @as(usize, @intCast(self.index_last() - index_low));
+                @memcpy(seq[index1..index2], self.seq);
+            }
+            {
+                const index1 = @as(usize, @intCast(other.index_first - index_low));
+                for (other.seq, index1..) |si, i| {
+                    seq[i] += si;
+                }
             }
 
             return .{ .index_first = index_low, .seq = seq };

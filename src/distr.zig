@@ -52,6 +52,40 @@ test "CountDiceOutcomes - rollkdn" {
     }
 }
 
+test "CountDiceOutcomes - roll kd6 drop lowest d" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const r1 = try CDO.roll1dn(allocator, 6);
+    defer r1.deinit(allocator);
+
+    inline for (1..4) |k| {
+        inline for (1..3) |d| {
+            const result = try CDO.rollKTimesDropLow(allocator, r1, @intCast(k), @intCast(d));
+            defer result.deinit(allocator);
+
+            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+                pub fn f(v: []const u64) u64 {
+                    var sorted = allocator.alloc(u64, v.len) catch unreachable;
+                    defer allocator.free(sorted);
+                    @memcpy(sorted, v);
+                    std.mem.sort(u64, sorted, {}, std.sort.asc(u64));
+
+                    var sum: u64 = 0;
+                    for (sorted[d..]) |vi| {
+                        sum += vi + 1; // add one, since sides start at 1 but `NestedRangeIterator` starts at 0
+                    }
+                    return sum;
+                }
+            }.f, @intCast(k + d), 6);
+            defer brute_result.deinit(allocator);
+
+            try std.testing.expectEqual(brute_result.index_first, result.index_first);
+            try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
+        }
+    }
+}
+
 test "CountDiceOutcomes - roll kd6 drop highest d" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
@@ -223,6 +257,20 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
                 result_tmp = undefined;
             }
 
+            return result;
+        }
+
+        pub fn rollKTimesDropLow(
+            allocator: std.mem.Allocator,
+            roll1: SeqWOffset,
+            keep_count: D,
+            drop_count: D,
+        ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
+            std.mem.reverse(Y, roll1.seq);
+            defer std.mem.reverse(Y, roll1.seq);
+
+            const result = try rollKTimesDropHigh(allocator, roll1, keep_count, drop_count);
+            std.mem.reverse(Y, result.seq);
             return result;
         }
 

@@ -120,6 +120,31 @@ test "CountDiceOutcomes - roll kd6 drop highest d" {
     }
 }
 
+test "CountDiceOutcomes - roll kd6 = drop lowest 0 = drop highest 0" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const r1 = try CDO.roll1dn(allocator, 6);
+    defer r1.deinit(allocator);
+
+    for (1..11) |k_usize| {
+        const k: u32 = @intCast(k_usize);
+
+        const result_flat = try CDO.rollKTimes(allocator, r1, k);
+        defer result_flat.deinit(allocator);
+        const result_drop_low = try CDO.rollKTimesDropLow(allocator, r1, k, 0);
+        defer result_drop_low.deinit(allocator);
+        const result_drop_high = try CDO.rollKTimesDropHigh(allocator, r1, k, 0);
+        defer result_drop_high.deinit(allocator);
+
+        try std.testing.expectEqual(result_flat.index_first, result_drop_low.index_first);
+        try std.testing.expectEqualSlices(u64, result_flat.seq, result_drop_low.seq);
+
+        try std.testing.expectEqual(result_flat.index_first, result_drop_high.index_first);
+        try std.testing.expectEqualSlices(u64, result_flat.seq, result_drop_high.seq);
+    }
+}
+
 fn generate_distr_by_brute_force(
     allocator: std.mem.Allocator,
     mapFn: fn (v: []const u64) u64,

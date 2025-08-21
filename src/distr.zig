@@ -583,12 +583,12 @@ test "SequenceWithOffset.applyFnToValues" {
     var buffer = [_]i32{ 1, 2, 3, 4 };
     const seq = SeqWOffset{ .index_first = 1, .seq = &buffer };
     const mapFn = struct {
-        pub fn mul2add3(x: i32) i64 {
+        pub fn mul2add3(_: void, x: i32) i64 {
             return @intCast(2 * x + 3);
         }
     }.mul2add3;
 
-    const result = try seq.applyFnToValues(allocator, mapFn);
+    const result = try seq.applyFnToValues(allocator, {}, mapFn);
     defer result.deinit(allocator);
 
     try std.testing.expectEqual(seq.index_first, result.index_first);
@@ -603,6 +603,46 @@ test "SequenceWithOffset.scaleBy" {
     try seq.scaleBy(5);
 
     try std.testing.expectEqualSlices(i32, &[_]i32{ 5, 10, 15, 20 }, seq.seq);
+}
+
+test "SequenceWithOffset.toProb" {
+    const SeqWOffset = SequenceWithOffset(usize, u32);
+    const allocator = std.testing.allocator;
+
+    var seq = SeqWOffset{
+        .index_first = 3,
+        .seq = @constCast(@as([]const u32, &.{ 2, 5, 4, 3, 2 })), // sum = 16 = 2^4
+    };
+    const result = try seq.toProb(f64, allocator);
+    defer result.deinit(allocator);
+
+    try std.testing.expectEqualSlices(
+        f64,
+        &.{ 0.125, 0.3125, 0.25, 0.1875, 0.125 },
+        result.seq,
+    );
+}
+
+test "SequenceWithOffset.toProb errors on sum larger than int max" {
+    const SeqWOffset = SequenceWithOffset(usize, u8);
+    const allocator = std.testing.allocator;
+
+    var seq = SeqWOffset{
+        .index_first = 3,
+        .seq = @constCast(@as([]const u8, &.{ 255, 255 })),
+    };
+    try std.testing.expectEqual(error.Overflow, seq.toProb(f64, allocator));
+}
+
+test "SequenceWithOffset.toProb errors on sum larger than float resolution" {
+    const SeqWOffset = SequenceWithOffset(usize, u64);
+    const allocator = std.testing.allocator;
+
+    var seq = SeqWOffset{
+        .index_first = 3,
+        .seq = @constCast(@as([]const u64, &.{std.math.maxInt(u64)})),
+    };
+    try std.testing.expectEqual(error.FloatOverflow, seq.toProb(f16, allocator));
 }
 
 /// A sequence of numbers, offset from zero by a set amount.
@@ -703,17 +743,46 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
         pub fn applyFnToValues(
             self: Self,
             allocator: std.mem.Allocator,
+            context: anytype,
             mapFn: anytype,
-        ) std.mem.Allocator.Error!SequenceWithOffset(X, @TypeOf(mapFn(self.seq[0]))) {
+        ) std.mem.Allocator.Error!SequenceWithOffset(X, @TypeOf(mapFn(context, self.seq[0]))) {
             // const YNew = comptime switch (@typeInfo(@TypeOf(mapFn))) {
             //     .Fn => |info| info.type orelse unreachable,
             //     else => unreachable,
             // };
-            var buffer = try allocator.alloc(@TypeOf(mapFn(self.seq[0])), self.seq.len);
+            var buffer = try allocator.alloc(@TypeOf(mapFn(context, self.seq[0])), self.seq.len);
             for (0..buffer.len) |i| {
-                buffer[i] = mapFn(self.seq[i]);
+                buffer[i] = mapFn(context, self.seq[i]);
             }
             return .{ .index_first = self.index_first, .seq = buffer };
+        }
+
+        pub fn toProb(
+            self: Self,
+            comptime F: type,
+            allocator: std.mem.Allocator,
+        ) (std.mem.Allocator.Error || error{
+            Overflow,
+            FloatOverflow,
+        })!SequenceWithOffset(X, F) {
+            @setFloatMode(.optimized);
+
+            var sum: Y = 0;
+            for (self.seq) |x| {
+                sum = try std.math.add(Y, sum, x);
+            }
+            const sum_float = @as(F, @floatFromInt(sum));
+            if (!std.math.isFinite(sum_float)) {
+                return error.FloatOverflow;
+            }
+
+            const convertValue = struct {
+                fn func(factor: F, y: Y) F {
+                    return @as(F, @floatFromInt(y)) * factor;
+                }
+            }.func;
+
+            return self.applyFnToValues(allocator, 1.0 / sum_float, convertValue);
         }
     };
 }

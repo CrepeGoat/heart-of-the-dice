@@ -10,6 +10,20 @@ test "CountDiceOutcomes.roll0" {
     try std.testing.expectEqualSlices(u64, &[_]u64{1}, result.seq);
 }
 
+test "CountDiceOutcomes - roll0 deallocates on error" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        pub fn func(alloc: std.mem.Allocator) !void {
+            const roll1 = try CDO.roll0(alloc);
+            defer roll1.deinit(alloc);
+        }
+    }.func;
+
+    try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
+}
+
 test "CountDiceOutcomes.roll1dn" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
@@ -21,6 +35,20 @@ test "CountDiceOutcomes.roll1dn" {
         try std.testing.expectEqual(1, result.index_first);
         try std.testing.expectEqualSlices(u64, &([_]u64{1} ** n), result.seq);
     }
+}
+
+test "CountDiceOutcomes - roll1d10 deallocates on error" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        pub fn func(alloc: std.mem.Allocator) !void {
+            const roll1 = try CDO.roll1dn(alloc, 10);
+            defer roll1.deinit(alloc);
+        }
+    }.func;
+
+    try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
 }
 
 test "CountDiceOutcomes - rollkdn" {
@@ -50,6 +78,23 @@ test "CountDiceOutcomes - rollkdn" {
             try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
         }
     }
+}
+
+test "CountDiceOutcomes - roll6d10 deallocates on error" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        pub fn func(alloc: std.mem.Allocator) !void {
+            const roll1 = try CDO.roll1dn(alloc, 10);
+            defer roll1.deinit(alloc);
+
+            const result = try CDO.rollKTimes(alloc, roll1, 6);
+            defer result.deinit(alloc);
+        }
+    }.func;
+
+    try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
 }
 
 test "CountDiceOutcomes - roll kd6 drop lowest d" {
@@ -86,6 +131,23 @@ test "CountDiceOutcomes - roll kd6 drop lowest d" {
     }
 }
 
+test "CountDiceOutcomes - roll4d6 drop lowest 1 deallocates on error" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        pub fn func(alloc: std.mem.Allocator) !void {
+            const roll1 = try CDO.roll1dn(alloc, 6);
+            defer roll1.deinit(alloc);
+
+            const result = try CDO.rollKTimesDropLow(alloc, roll1, 3, 1);
+            defer result.deinit(alloc);
+        }
+    }.func;
+
+    try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
+}
+
 test "CountDiceOutcomes - roll kd6 drop highest d" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
@@ -118,6 +180,23 @@ test "CountDiceOutcomes - roll kd6 drop highest d" {
             try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
         }
     }
+}
+
+test "CountDiceOutcomes - roll4d6 drop highest 1 deallocates on error" {
+    const CDO = CountDiceOutcomes(u32, usize, u64);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        pub fn func(alloc: std.mem.Allocator) !void {
+            const roll1 = try CDO.roll1dn(alloc, 6);
+            defer roll1.deinit(alloc);
+
+            const result = try CDO.rollKTimesDropHigh(alloc, roll1, 3, 1);
+            defer result.deinit(alloc);
+        }
+    }.func;
+
+    try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
 }
 
 test "CountDiceOutcomes - roll kd6 = drop lowest 0 = drop highest 0" {
@@ -272,13 +351,14 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
             k: D,
         ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
             var result = try roll0(allocator);
+            errdefer result.deinit(allocator);
             var result_tmp: SeqWOffset = undefined;
 
             for (0..@intCast(k)) |_| {
-                std.mem.swap(SeqWOffset, &result_tmp, &result);
-                result = try result_tmp.addDistr(allocator, roll1);
+                result_tmp = try result.addDistr(allocator, roll1);
+                result.deinit(allocator);
 
-                result_tmp.deinit(allocator);
+                result = result_tmp;
                 result_tmp = undefined;
             }
 

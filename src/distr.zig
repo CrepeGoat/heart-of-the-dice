@@ -154,6 +154,29 @@ test "CountDiceOutcomes - roll kd6 drop lowest d" {
     }
 }
 
+test "CountDiceOutcomes - roll 4 times drop lowest 2 - fuzz test deallocations under errors" {
+    const CDO = CountDiceOutcomes(u32, usize, u8);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        fn func(alloc: std.mem.Allocator, roll1_buffer: []const u8) !void {
+            const roll1: SequenceWithOffset(usize, u8) = .{ .index_first = 0, .seq = @constCast(roll1_buffer) };
+            const result = CDO.rollKTimesDropLow(alloc, roll1, 4, 2) catch |err| switch (err) {
+                error.Overflow => return {},
+                error.OutOfMemory => return error.OutOfMemory,
+            };
+            defer result.deinit(alloc);
+        }
+    }.func;
+    const dealloc_fuzz_fn = struct {
+        fn func(alloc: std.mem.Allocator, input: []const u8) !void {
+            return std.testing.checkAllAllocationFailures(alloc, test_fn, .{input});
+        }
+    }.func;
+
+    try std.testing.fuzz(allocator, dealloc_fuzz_fn, .{});
+}
+
 test "CountDiceOutcomes - roll4d6 drop lowest 1 deallocates on error" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
@@ -203,6 +226,29 @@ test "CountDiceOutcomes - roll kd6 drop highest d" {
             try std.testing.expectEqualSlices(u64, brute_result.seq, result.seq);
         }
     }
+}
+
+test "CountDiceOutcomes - roll 4 times drop highest 2 - fuzz test deallocations under errors" {
+    const CDO = CountDiceOutcomes(u32, usize, u8);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        fn func(alloc: std.mem.Allocator, roll1_buffer: []const u8) !void {
+            const roll1: SequenceWithOffset(usize, u8) = .{ .index_first = 0, .seq = @constCast(roll1_buffer) };
+            const result = CDO.rollKTimesDropLow(alloc, roll1, 4, 2) catch |err| switch (err) {
+                error.Overflow => return {},
+                error.OutOfMemory => return error.OutOfMemory,
+            };
+            defer result.deinit(alloc);
+        }
+    }.func;
+    const dealloc_fuzz_fn = struct {
+        fn func(alloc: std.mem.Allocator, input: []const u8) !void {
+            return std.testing.checkAllAllocationFailures(alloc, test_fn, .{input});
+        }
+    }.func;
+
+    try std.testing.fuzz(allocator, dealloc_fuzz_fn, .{});
 }
 
 test "CountDiceOutcomes - roll4d6 drop highest 1 deallocates on error" {
@@ -709,7 +755,8 @@ fn binomial(T: type, n: T, k: T) !T {
         return binomial(T, n, n - k);
     }
     var result: T = 1;
-    for (0..k) |ki| {
+    for (0..k) |_ki| {
+        const ki: T = @intCast(_ki);
         result = try std.math.mul(T, result, n - ki);
         result = std.math.divExact(T, result, ki + 1) catch unreachable;
     }

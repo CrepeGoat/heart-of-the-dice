@@ -80,6 +80,29 @@ test "CountDiceOutcomes - rollkdn" {
     }
 }
 
+test "CountDiceOutcomes - roll 5 times - fuzz test deallocations under errors" {
+    const CDO = CountDiceOutcomes(u32, usize, u8);
+    const allocator = std.testing.allocator;
+
+    const test_fn = struct {
+        fn func(alloc: std.mem.Allocator, roll1_buffer: []const u8) !void {
+            const roll1: SequenceWithOffset(usize, u8) = .{ .index_first = 0, .seq = @constCast(roll1_buffer) };
+            const result = CDO.rollKTimes(alloc, roll1, 5) catch |err| switch (err) {
+                error.Overflow => return {},
+                error.OutOfMemory => return error.OutOfMemory,
+            };
+            defer result.deinit(alloc);
+        }
+    }.func;
+    const dealloc_fuzz_fn = struct {
+        fn func(alloc: std.mem.Allocator, input: []const u8) !void {
+            return std.testing.checkAllAllocationFailures(alloc, test_fn, .{input});
+        }
+    }.func;
+
+    try std.testing.fuzz(allocator, dealloc_fuzz_fn, .{});
+}
+
 test "CountDiceOutcomes - roll6d10 deallocates on error" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
@@ -332,14 +355,13 @@ const NestedRangeIterator = struct {
 
 pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
     const SeqWOffset = SequenceWithOffset(X, Y);
-    const Result = std.mem.Allocator.Error!SeqWOffset;
 
     return struct {
-        pub fn roll0(allocator: std.mem.Allocator) Result {
+        pub fn roll0(allocator: std.mem.Allocator) std.mem.Allocator.Error!SeqWOffset {
             return SeqWOffset.initSingle(allocator, 0, 1);
         }
 
-        pub fn roll1dn(allocator: std.mem.Allocator, n: X) Result {
+        pub fn roll1dn(allocator: std.mem.Allocator, n: X) std.mem.Allocator.Error!SeqWOffset {
             const buffer = try allocator.alloc(Y, @intCast(n));
             @memset(buffer, 1);
             return SeqWOffset{ .index_first = 1, .seq = buffer };
@@ -587,7 +609,7 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
                 .index_first = self.index_first + other.index_first,
                 .seq = try convolve1d(
                     Y,
-                    try allocator.alloc(Y, self.seq.len + other.seq.len - 1),
+                    try allocator.alloc(Y, std.math.sub(usize, self.seq.len + other.seq.len, 1) catch 0),
                     self.seq,
                     other.seq,
                 ),
@@ -662,18 +684,14 @@ test convolve1d {
 }
 
 fn convolve1d(comptime T: type, result: []T, a1: []const T, a2: []const T) (error{Overflow}![]T) {
-    const convolve_len = a1.len + a2.len - 1;
-    if (result.len != convolve_len) {
-        unreachable;
-    }
-    var _result = result[0..convolve_len];
+    std.debug.assert(result.len == std.math.sub(usize, a1.len + a2.len, 1) catch 0);
 
-    for (_result, 0..) |_, i| {
+    for (result, 0..) |_, i| {
         const a1sub = a1[std.math.sub(usize, i + 1, a2.len) catch 0 .. @min(a1.len, i + 1)];
         const a2sub = a2[std.math.sub(usize, i + 1, a1.len) catch 0 .. @min(a2.len, i + 1)];
         std.debug.assert(a1sub.len == a2sub.len);
 
-        _result[i] = 0;
+        result[i] = 0;
         for (0..a1sub.len) |j| {
             result[i] = try std.math.add(
                 T,
@@ -683,7 +701,7 @@ fn convolve1d(comptime T: type, result: []T, a1: []const T, a2: []const T) (erro
         }
     }
 
-    return result[0..convolve_len];
+    return result;
 }
 
 fn binomial(T: type, n: T, k: T) !T {

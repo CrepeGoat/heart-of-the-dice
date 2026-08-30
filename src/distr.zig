@@ -299,7 +299,7 @@ fn generate_distr_by_brute_force(
     k: u32,
     n: u64,
 ) !SequenceWithOffset(usize, u64) {
-    var values = std.ArrayList(u64).init(allocator);
+    var values = std.ArrayList(u64).empty;
 
     const buffer = try allocator.alloc(u64, k);
     defer allocator.free(buffer);
@@ -308,7 +308,7 @@ fn generate_distr_by_brute_force(
         const value = mapFn(iter.get());
         const value_usize = @as(usize, @intCast(value));
         if (value_usize >= values.items.len) {
-            try values.appendNTimes(0, 1 + value_usize - values.items.len);
+            try values.appendNTimes(allocator, 0, 1 + value_usize - values.items.len);
         }
         values.items[value_usize] += 1;
 
@@ -318,9 +318,9 @@ fn generate_distr_by_brute_force(
     const i = for (0..values.items.len) |i| {
         if (values.items[i] != 0) break i;
     } else values.items.len;
-    try values.replaceRange(0, i, &[0]u64{});
+    try values.replaceRange(allocator, 0, i, &[0]u64{});
 
-    return .{ .index_first = i, .seq = try values.toOwnedSlice() };
+    return .{ .index_first = i, .seq = try values.toOwnedSlice(allocator) };
 }
 
 test NestedRangeIterator {

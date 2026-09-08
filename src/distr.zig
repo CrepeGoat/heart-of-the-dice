@@ -74,14 +74,16 @@ test "CountDiceOutcomes.roll1dn" {
     }
 }
 
-test "CountDiceOutcomes - roll1d10 deallocates on error" {
+test "CountDiceOutcomes - roll1dn deallocates on error" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
     const test_fn = struct {
         pub fn func(alloc: std.mem.Allocator) !void {
-            const roll1 = try CDO.roll1dn(alloc, 10);
-            defer roll1.deinit(alloc);
+            inline for (0..10) |n| {
+                const roll1 = try CDO.roll1dn(alloc, n);
+                defer roll1.deinit(alloc);
+            }
         }
     }.func;
 
@@ -100,7 +102,7 @@ test "CountDiceOutcomes - rollkdn" {
             r1.deinit(allocator);
             defer result.deinit(allocator);
 
-            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+            const brute_result = try generateDistrByBruteForce(allocator, struct {
                 pub fn f(v: []const u64) u64 {
                     var sum: u64 = 0;
                     for (v) |vi| {
@@ -188,7 +190,7 @@ test "CountDiceOutcomes - roll kd6 drop lowest d" {
             const result = try CDO.rollKTimesDropLow(allocator, r1, @intCast(k), @intCast(d));
             defer result.deinit(allocator);
 
-            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+            const brute_result = try generateDistrByBruteForce(allocator, struct {
                 pub fn f(v: []const u64) u64 {
                     var sorted = allocator.alloc(u64, v.len) catch unreachable;
                     defer allocator.free(sorted);
@@ -285,7 +287,7 @@ test "CountDiceOutcomes - roll kd6 drop highest d" {
             const result = try CDO.rollKTimesDropHigh(allocator, r1, @intCast(k), @intCast(d));
             defer result.deinit(allocator);
 
-            const brute_result = try generate_distr_by_brute_force(allocator, struct {
+            const brute_result = try generateDistrByBruteForce(allocator, struct {
                 pub fn f(v: []const u64) u64 {
                     var sorted = allocator.alloc(u64, v.len) catch unreachable;
                     defer allocator.free(sorted);
@@ -394,7 +396,11 @@ test "CountDiceOutcomes - roll kd6 = drop lowest 0 = drop highest 0" {
     }
 }
 
-fn generate_distr_by_brute_force(
+/// Iterates all possible dice roll values, and accumulates them into a
+/// distribution using the callable parameter `mapFn` (for this file, `mapFn`
+/// will typically just sum the values of all dice rolls, as that's how D&D dice
+/// rolling works).
+fn generateDistrByBruteForce(
     allocator: std.mem.Allocator,
     mapFn: fn (v: []const u64) u64,
     k: u32,
@@ -449,6 +455,12 @@ test NestedRangeIterator {
     try std.testing.expect(!iter.increment());
 }
 
+/// Iterates all possible values that an array can take, when given that:
+/// 1. the array has a fixed length
+/// 2. each array value is within a restricted range of [0, count]
+///
+/// Here, this is used to iterate all possible results from rolling `buffer.len`
+/// dice that have `count + 1` sides.
 const NestedRangeIterator = struct {
     buffer: []u64,
     count: u64,

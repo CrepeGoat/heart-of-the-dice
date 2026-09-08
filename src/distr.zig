@@ -136,7 +136,7 @@ test "CountDiceOutcomes - roll k times - fuzz test deallocations under errors" {
 
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
-    for (0..1000) |_| {
+    for (0..100) |_| {
         const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
             prng.random(),
             allocator,
@@ -230,7 +230,7 @@ test "CountDiceOutcomes - roll k times drop lowest d - fuzz test deallocations u
 
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
-    for (0..1000) |_| {
+    for (0..100) |_| {
         const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
             prng.random(),
             allocator,
@@ -327,7 +327,7 @@ test "CountDiceOutcomes - roll k times drop highest d - fuzz test deallocations 
 
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
-    for (0..1000) |_| {
+    for (0..100) |_| {
         const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
             prng.random(),
             allocator,

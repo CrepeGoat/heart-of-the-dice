@@ -178,11 +178,11 @@ test "CountDiceOutcomes - roll6d10 deallocates on error" {
     try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
 }
 
-test "CountDiceOutcomes - roll kd6 drop lowest d" {
+test "CountDiceOutcomes - roll kd4 drop lowest d" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
-    const r1 = try CDO.roll1dn(allocator, 6);
+    const r1 = try CDO.roll1dn(allocator, 4);
     defer r1.deinit(allocator);
 
     inline for (1..4) |k| {
@@ -203,7 +203,7 @@ test "CountDiceOutcomes - roll kd6 drop lowest d" {
                     }
                     return sum;
                 }
-            }.f, @intCast(k + d), 6);
+            }.f, @intCast(k + d), 4);
             defer brute_result.deinit(allocator);
 
             try std.testing.expectEqual(brute_result.index_first, result.index_first);
@@ -258,13 +258,13 @@ test "CountDiceOutcomes - roll k times drop lowest d - fuzz test deallocations u
     }
 }
 
-test "CountDiceOutcomes - roll4d6 drop lowest 1 deallocates on error" {
+test "CountDiceOutcomes - roll4d4 drop lowest 1 deallocates on error" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
     const test_fn = struct {
         pub fn func(alloc: std.mem.Allocator) !void {
-            const roll1 = try CDO.roll1dn(alloc, 6);
+            const roll1 = try CDO.roll1dn(alloc, 4);
             defer roll1.deinit(alloc);
 
             const result = try CDO.rollKTimesDropLow(alloc, roll1, 3, 1);
@@ -275,11 +275,11 @@ test "CountDiceOutcomes - roll4d6 drop lowest 1 deallocates on error" {
     try std.testing.checkAllAllocationFailures(allocator, test_fn, .{});
 }
 
-test "CountDiceOutcomes - roll kd6 drop highest d" {
+test "CountDiceOutcomes - roll kd4 drop highest d" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
-    const r1 = try CDO.roll1dn(allocator, 6);
+    const r1 = try CDO.roll1dn(allocator, 4);
     defer r1.deinit(allocator);
 
     inline for (1..4) |k| {
@@ -300,7 +300,7 @@ test "CountDiceOutcomes - roll kd6 drop highest d" {
                     }
                     return sum;
                 }
-            }.f, @intCast(k + d), 6);
+            }.f, @intCast(k + d), 4);
             defer brute_result.deinit(allocator);
 
             try std.testing.expectEqual(brute_result.index_first, result.index_first);
@@ -354,13 +354,13 @@ test "CountDiceOutcomes - roll k times drop highest d - fuzz test deallocations 
     }
 }
 
-test "CountDiceOutcomes - roll4d6 drop highest 1 deallocates on error" {
+test "CountDiceOutcomes - roll4d4 drop highest 1 deallocates on error" {
     const CDO = CountDiceOutcomes(u32, usize, u64);
     const allocator = std.testing.allocator;
 
     const test_fn = struct {
         pub fn func(alloc: std.mem.Allocator) !void {
-            const roll1 = try CDO.roll1dn(alloc, 6);
+            const roll1 = try CDO.roll1dn(alloc, 4);
             defer roll1.deinit(alloc);
 
             const result = try CDO.rollKTimesDropHigh(alloc, roll1, 3, 1);

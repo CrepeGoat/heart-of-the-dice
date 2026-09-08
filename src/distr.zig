@@ -5,7 +5,7 @@ const std = @import("std");
 // https://ziggit.dev/t/errors-when-trying-to-run-std-testing-fuzz-on-0-16/15515
 // https://codeberg.org/ziglang/zig/issues/30655
 // TODO move back to fuzz testing framework when bug is resolved
-fn generateIntSeq(
+fn generateRngIntSeq(
     // smith: *std.testing.Smith,
     rng: std.Random,
     allocator: std.mem.Allocator,
@@ -123,26 +123,9 @@ test "CountDiceOutcomes - roll k times - fuzz test deallocations under errors" {
     const test_fn = struct {
         fn func(
             allocator: std.mem.Allocator,
-            // smith: *std.testing.Smith,
-            rng: std.Random,
+            roll1: SequenceWithOffset(usize, u8),
+            k: u32,
         ) !void {
-            const roll1: SequenceWithOffset(usize, u8) = try generateIntSeq(
-                rng,
-                allocator,
-                usize,
-                u8,
-                0,
-                10,
-                1,
-                20,
-                std.math.minInt(u8),
-                std.math.maxInt(u8),
-            );
-            defer roll1.deinit(allocator);
-
-            const k =
-                // smith.valueRangeAtMost(u32, 1, 5);
-                rng.intRangeAtMost(u32, 1, 5);
             const result = CDO.rollKTimes(allocator, roll1, k) catch |err| switch (err) {
                 error.Overflow => return {},
                 error.OutOfMemory => return error.OutOfMemory,
@@ -154,7 +137,25 @@ test "CountDiceOutcomes - roll k times - fuzz test deallocations under errors" {
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
     for (0..1000) |_| {
-        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{prng.random()});
+        const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
+            prng.random(),
+            allocator,
+            usize,
+            u8,
+            0,
+            10,
+            1,
+            20,
+            std.math.minInt(u8),
+            std.math.maxInt(u8),
+        );
+        defer roll1.deinit(allocator);
+
+        const k =
+            // smith.valueRangeAtMost(u32, 1, 5);
+            prng.random().intRangeAtMost(u32, 1, 5);
+
+        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{ roll1, k });
     }
 }
 
@@ -215,29 +216,10 @@ test "CountDiceOutcomes - roll k times drop lowest d - fuzz test deallocations u
     const test_fn = struct {
         fn func(
             allocator: std.mem.Allocator,
-            // smith: *std.testing.Smith,
-            rng: std.Random,
+            roll1: SequenceWithOffset(usize, u8),
+            k: u32,
+            d: u32,
         ) !void {
-            const roll1: SequenceWithOffset(usize, u8) = try generateIntSeq(
-                rng,
-                allocator,
-                usize,
-                u8,
-                0,
-                10,
-                1,
-                20,
-                std.math.minInt(u8),
-                std.math.maxInt(u8),
-            );
-            defer roll1.deinit(allocator);
-
-            const k =
-                // smith.valueRangeAtMost(u32, 1, 5);
-                rng.intRangeAtMost(u32, 1, 5);
-            const d =
-                // smith.valueRangeAtMost(u32, 1, 5);
-                rng.intRangeAtMost(u32, 1, 3);
             const result = CDO.rollKTimesDropLow(allocator, roll1, k, d) catch |err| switch (err) {
                 error.Overflow => return {},
                 error.OutOfMemory => return error.OutOfMemory,
@@ -249,7 +231,28 @@ test "CountDiceOutcomes - roll k times drop lowest d - fuzz test deallocations u
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
     for (0..1000) |_| {
-        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{prng.random()});
+        const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
+            prng.random(),
+            allocator,
+            usize,
+            u8,
+            0,
+            10,
+            1,
+            20,
+            std.math.minInt(u8),
+            std.math.maxInt(u8),
+        );
+        defer roll1.deinit(allocator);
+
+        const k =
+            // smith.valueRangeAtMost(u32, 1, 5);
+            prng.random().intRangeAtMost(u32, 1, 5);
+        const d =
+            // smith.valueRangeAtMost(u32, 1, 5);
+            prng.random().intRangeAtMost(u32, 1, 3);
+
+        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{ roll1, k, d });
     }
 }
 
@@ -310,29 +313,10 @@ test "CountDiceOutcomes - roll k times drop highest d - fuzz test deallocations 
     const test_fn = struct {
         fn func(
             allocator: std.mem.Allocator,
-            // smith: *std.testing.Smith,
-            rng: std.Random,
+            roll1: SequenceWithOffset(usize, u8),
+            k: u32,
+            d: u32,
         ) !void {
-            const roll1: SequenceWithOffset(usize, u8) = try generateIntSeq(
-                rng,
-                allocator,
-                usize,
-                u8,
-                0,
-                10,
-                1,
-                20,
-                std.math.minInt(u8),
-                std.math.maxInt(u8),
-            );
-            defer roll1.deinit(allocator);
-
-            const k =
-                // smith.valueRangeAtMost(u32, 1, 5);
-                rng.intRangeAtMost(u32, 1, 5);
-            const d =
-                // smith.valueRangeAtMost(u32, 1, 5);
-                rng.intRangeAtMost(u32, 1, 3);
             const result = CDO.rollKTimesDropHigh(allocator, roll1, k, d) catch |err| switch (err) {
                 error.Overflow => return {},
                 error.OutOfMemory => return error.OutOfMemory,
@@ -344,7 +328,27 @@ test "CountDiceOutcomes - roll k times drop highest d - fuzz test deallocations 
     const allocator = std.testing.allocator;
     var prng: std.Random.DefaultPrng = .init(std.testing.random_seed);
     for (0..1000) |_| {
-        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{prng.random()});
+        const roll1: SequenceWithOffset(usize, u8) = try generateRngIntSeq(
+            prng.random(),
+            allocator,
+            usize,
+            u8,
+            0,
+            10,
+            1,
+            20,
+            std.math.minInt(u8),
+            std.math.maxInt(u8),
+        );
+        defer roll1.deinit(allocator);
+
+        const k =
+            // smith.valueRangeAtMost(u32, 1, 5);
+            prng.random().intRangeAtMost(u32, 1, 5);
+        const d =
+            // smith.valueRangeAtMost(u32, 1, 5);
+            prng.random().intRangeAtMost(u32, 1, 3);
+        try std.testing.checkAllAllocationFailures(allocator, test_fn, .{ roll1, k, d });
     }
 }
 

@@ -9,27 +9,27 @@ fn generateRngIntSeq(
     // smith: *std.testing.Smith,
     rng: std.Random,
     allocator: std.mem.Allocator,
-    comptime X: type,
-    comptime Y: type,
-    offset_min: X,
-    offset_max: X,
-    len_min: X,
-    len_max: X,
-    val_min: Y,
-    val_max: Y,
-) std.mem.Allocator.Error!SequenceWithOffset(X, Y) {
+    comptime Offset: type,
+    comptime Count: type,
+    offset_min: Offset,
+    offset_max: Offset,
+    len_min: Offset,
+    len_max: Offset,
+    val_min: Count,
+    val_max: Count,
+) std.mem.Allocator.Error!SequenceWithOffset(Offset, Count) {
     const len =
-        // smith.valueRangeAtMost(X, len_min, len_max);
-        rng.intRangeAtMost(X, len_min, len_max);
-    const buffer = try allocator.alloc(Y, len);
+        // smith.valueRangeAtMost(Offset, len_min, len_max);
+        rng.intRangeAtMost(Offset, len_min, len_max);
+    const buffer = try allocator.alloc(Count, len);
     for (buffer) |*item| {
         item.* =
-            // smith.valueRangeAtMost(Y, val_min, val_max);
-            rng.intRangeAtMost(Y, val_min, val_max);
+            // smith.valueRangeAtMost(Count, val_min, val_max);
+            rng.intRangeAtMost(Count, val_min, val_max);
     }
     const startIndex =
-        // smith.valueRangeAtMost(X, offset_min, offset_max);
-        rng.intRangeAtMost(X, offset_min, offset_max);
+        // smith.valueRangeAtMost(Offset, offset_min, offset_max);
+        rng.intRangeAtMost(Offset, offset_min, offset_max);
 
     return .{
         .seq = buffer,
@@ -512,16 +512,16 @@ const NestedRangeIterator = struct {
     }
 };
 
-pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
-    const SeqWOffset = SequenceWithOffset(X, Y);
+pub fn CountDiceOutcomes(DiceCount: type, Offset: type, Count: type) type {
+    const SeqWOffset = SequenceWithOffset(Offset, Count);
 
     return struct {
         pub fn roll0(allocator: std.mem.Allocator) std.mem.Allocator.Error!SeqWOffset {
             return SeqWOffset.initSingle(allocator, 0, 1);
         }
 
-        pub fn roll1dn(allocator: std.mem.Allocator, n: X) std.mem.Allocator.Error!SeqWOffset {
-            const buffer = try allocator.alloc(Y, @intCast(n));
+        pub fn roll1dn(allocator: std.mem.Allocator, n: Offset) std.mem.Allocator.Error!SeqWOffset {
+            const buffer = try allocator.alloc(Count, @intCast(n));
             @memset(buffer, 1);
             return SeqWOffset{ .index_first = 1, .seq = buffer };
         }
@@ -529,7 +529,7 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
         pub fn rollKTimes(
             allocator: std.mem.Allocator,
             roll1: SeqWOffset,
-            k: D,
+            k: DiceCount,
         ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
             var result = try roll0(allocator);
             errdefer result.deinit(allocator);
@@ -549,22 +549,22 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
         pub fn rollKTimesDropLow(
             allocator: std.mem.Allocator,
             roll1: SeqWOffset,
-            keep_count: D,
-            drop_count: D,
+            keep_count: DiceCount,
+            drop_count: DiceCount,
         ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
-            std.mem.reverse(Y, roll1.seq);
-            defer std.mem.reverse(Y, roll1.seq);
+            std.mem.reverse(Count, roll1.seq);
+            defer std.mem.reverse(Count, roll1.seq);
 
             const result = try rollKTimesDropHigh(allocator, roll1, keep_count, drop_count);
-            std.mem.reverse(Y, result.seq);
+            std.mem.reverse(Count, result.seq);
             return result;
         }
 
         pub fn rollKTimesDropHigh(
             allocator: std.mem.Allocator,
             roll1: SeqWOffset,
-            keep_count: D,
-            drop_count: D,
+            keep_count: DiceCount,
+            drop_count: DiceCount,
         ) (std.mem.Allocator.Error || error{Overflow})!SeqWOffset {
             const dice_count: usize = @intCast(keep_count + drop_count);
 
@@ -607,15 +607,15 @@ pub fn CountDiceOutcomes(D: type, X: type, Y: type) type {
                         defer tmp.deinit(allocator);
 
                         try tmp.biasBy(try std.math.mul(
-                            X,
+                            Offset,
                             @intCast(std.math.sub(usize, j, drop_i) catch 0),
-                            try std.math.add(X, roll1.index_first, @intCast(n - 1)),
+                            try std.math.add(Offset, roll1.index_first, @intCast(n - 1)),
                         ));
                         try tmp.scaleBy(
                             try std.math.mul(
-                                Y,
-                                try binomial(Y, @intCast(i), @intCast(j)),
-                                try powi_noUnderflow(Y, roll1.seq[n - 1], @intCast(j)),
+                                Count,
+                                try binomial(Count, @intCast(i), @intCast(j)),
+                                try powi_noUnderflow(Count, roll1.seq[n - 1], @intCast(j)),
                             ),
                         );
 
@@ -762,25 +762,25 @@ test "SequenceWithOffset.toProb errors on sum larger than float resolution" {
 ///
 /// The offset avoids having to manually offset data by explicitly storing zeros
 /// in the arrays, and also allows arrays to start before zero.
-pub fn SequenceWithOffset(X: type, Y: type) type {
-    switch (@typeInfo(X)) {
+pub fn SequenceWithOffset(Offset: type, Count: type) type {
+    switch (@typeInfo(Offset)) {
         .int => {},
         else => unreachable,
     }
 
     return struct {
-        seq: []Y,
-        index_first: X,
+        seq: []Count,
+        index_first: Offset,
 
         const Self = @This();
         const Result = std.mem.Allocator.Error!Self;
 
-        fn index_last(self: Self) X {
-            return @as(X, @intCast(self.seq.len)) + self.index_first;
+        fn index_last(self: Self) Offset {
+            return @as(Offset, @intCast(self.seq.len)) + self.index_first;
         }
 
         fn copy(self: Self, allocator: std.mem.Allocator) Result {
-            var buffer = try allocator.alloc(Y, self.seq.len);
+            var buffer = try allocator.alloc(Count, self.seq.len);
             @memcpy(buffer[0..], self.seq);
 
             return .{
@@ -789,8 +789,8 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             };
         }
 
-        pub fn initSingle(allocator: std.mem.Allocator, pos: X, value: Y) Result {
-            const buffer = try allocator.alloc(Y, 1);
+        pub fn initSingle(allocator: std.mem.Allocator, pos: Offset, value: Count) Result {
+            const buffer = try allocator.alloc(Count, 1);
             @memset(buffer, value);
             return Self{ .index_first = pos, .seq = buffer };
         }
@@ -804,13 +804,13 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             allocator: std.mem.Allocator,
             other: Self,
         ) (std.mem.Allocator.Error || error{Overflow})!Self {
-            const buffer = try allocator.alloc(Y, std.math.sub(usize, self.seq.len + other.seq.len, 1) catch 0);
+            const buffer = try allocator.alloc(Count, std.math.sub(usize, self.seq.len + other.seq.len, 1) catch 0);
             errdefer allocator.free(buffer);
 
             return .{
                 .index_first = self.index_first + other.index_first,
                 .seq = try convolve1d(
-                    Y,
+                    Count,
                     buffer,
                     self.seq,
                     other.seq,
@@ -828,7 +828,7 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
 
             const index_low = @min(self.index_first, other.index_first);
             const index_high = @max(self.index_last(), other.index_last());
-            var seq = try allocator.alloc(Y, @intCast(index_high - index_low));
+            var seq = try allocator.alloc(Count, @intCast(index_high - index_low));
 
             @memset(seq, 0);
             {
@@ -846,13 +846,13 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             return .{ .index_first = index_low, .seq = seq };
         }
 
-        pub fn biasBy(self: *Self, bias: X) (error{Overflow}!void) {
-            self.index_first = try std.math.add(X, self.index_first, bias);
+        pub fn biasBy(self: *Self, bias: Offset) (error{Overflow}!void) {
+            self.index_first = try std.math.add(Offset, self.index_first, bias);
         }
 
-        pub fn scaleBy(self: *Self, scale: Y) (error{Overflow}!void) {
+        pub fn scaleBy(self: *Self, scale: Count) (error{Overflow}!void) {
             for (0..self.seq.len) |i| {
-                self.seq[i] = try std.math.mul(Y, self.seq[i], scale);
+                self.seq[i] = try std.math.mul(Count, self.seq[i], scale);
             }
         }
 
@@ -861,7 +861,7 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             allocator: std.mem.Allocator,
             context: anytype,
             mapFn: anytype,
-        ) std.mem.Allocator.Error!SequenceWithOffset(X, @TypeOf(mapFn(context, self.seq[0]))) {
+        ) std.mem.Allocator.Error!SequenceWithOffset(Offset, @TypeOf(mapFn(context, self.seq[0]))) {
             // const YNew = comptime switch (@typeInfo(@TypeOf(mapFn))) {
             //     .Fn => |info| info.type orelse unreachable,
             //     else => unreachable,
@@ -880,12 +880,12 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
         ) (std.mem.Allocator.Error || error{
             Overflow,
             FloatOverflow,
-        })!SequenceWithOffset(X, F) {
+        })!SequenceWithOffset(Offset, F) {
             @setFloatMode(.optimized);
 
-            var sum: Y = 0;
+            var sum: Count = 0;
             for (self.seq) |x| {
-                sum = try std.math.add(Y, sum, x);
+                sum = try std.math.add(Count, sum, x);
             }
             const sum_float = @as(F, @floatFromInt(sum));
             if (!std.math.isFinite(sum_float)) {
@@ -893,7 +893,7 @@ pub fn SequenceWithOffset(X: type, Y: type) type {
             }
 
             const convertValue = struct {
-                fn func(factor: F, y: Y) F {
+                fn func(factor: F, y: Count) F {
                     return @as(F, @floatFromInt(y)) * factor;
                 }
             }.func;

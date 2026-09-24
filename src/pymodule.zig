@@ -1,4 +1,3 @@
-// https://csprimer.com/watch/varint-extension/
 // inspired by https://github.com/adamserafini/zaml/blob/27b2d54ffb39aace5d5d58f0aa75396c3e6fe84d/zamlmodule.zig
 
 const py = @cImport({
@@ -9,28 +8,11 @@ const py = @cImport({
 const std = @import("std");
 const distr = @import("distr");
 
-var CVarintMethods = [_]py.PyMethodDef{
-    .{
-        .ml_name = "encode",
-        .ml_meth = cvarint_encode,
-        .ml_flags = py.METH_VARARGS,
-        .ml_doc = "Encode an integer as varint.",
-    },
-    .{
-        .ml_name = "decode",
-        .ml_meth = cvarint_decode,
-        .ml_flags = py.METH_VARARGS,
-        .ml_doc = "Decode varint bytes to an integer.",
-    },
-    .{
-        .ml_name = null,
-        .ml_meth = null,
-        .ml_flags = 0,
-        .ml_doc = null,
-    },
-};
+pub export fn PyInit_distr() [*]py.PyObject {
+    return py.PyModule_Create(&distrmodule);
+}
 
-var cvarintmodule = py.PyModuleDef{
+const distrmodule = py.PyModuleDef{
     .m_base = py.PyModuleDef_Base{
         .ob_base = py.PyObject{
             .ob_refcnt = 1,
@@ -43,17 +25,42 @@ var cvarintmodule = py.PyModuleDef{
     .m_name = "distr",
     .m_doc = "A library for manipulating discrete distributions.",
     .m_size = -1,
-    .m_methods = &CVarintMethods,
+    .m_methods = &DistrMethods,
     .m_slots = null,
     .m_traverse = null,
     .m_clear = null,
     .m_free = null,
 };
 
-pub export fn PyInit_cvarint() [*]py.PyObject {
-    return py.PyModule_Create(&cvarintmodule);
-}
+const DistrMethods = [
+    _
+    :
+    .{
+        .ml_name = null,
+        .ml_meth = null,
+        .ml_flags = 0,
+        .ml_doc = null,
+    }
+]py.PyMethodDef{
+    .{
+        .ml_name = "encode",
+        .ml_meth = cvarint_encode,
+        .ml_flags = py.METH_VARARGS,
+        .ml_doc = "Encode an integer as varint.",
+    },
+    .{
+        .ml_name = "decode",
+        .ml_meth = cvarint_decode,
+        .ml_flags = py.METH_VARARGS,
+        .ml_doc = "Decode varint bytes to an integer.",
+    },
+};
 
+export const PyDistribution = struct {
+    obj_base: py.PyVarObject,
+};
+
+// All functions in this namespace should be exposed to the Python interpreter.
 const Api = struct {
     const Seq = distr.SequenceWithOffset(usize, u64);
 
@@ -61,7 +68,12 @@ const Api = struct {
     fn toRaw(
         self: [*c]py.PyObject,
         args: [*c]py.PyObject,
-    ) callconv(.C) ?[*]py.PyObject {}
+    ) callconv(.C) ?[*]py.PyObject {
+        var raw_seq: ?[*c]anyopaque = undefined;
+        if (py.PyArg_Parse(args, "?", &raw_seq) == 0) return null;
+
+        const seq = pyObjToSeq(Offset, Count, raw_seq, allocator);
+    }
 
     /// Convert a Distribution to its equivalent probability sequence and offset.
     fn toProbs(
@@ -100,14 +112,20 @@ const Api = struct {
     ) callconv(.C) ?[*]py.PyObject {}
 };
 
-fn pyObjToSeq(
+fn bytesToSeq(
     comptime Offset: type,
-    Count: type,
+    comptime Count: type,
     pyobj: [*]py.PyObject,
+    allocator: std.mem.Allocator,
 ) distr.SequenceWithOffset(Offset, Count) {}
 
-fn seqToPyObj(
+fn seqToBytes(
     comptime Offset: type,
-    Count: type,
+    comptime Count: type,
     seq: distr.SequenceWithOffset(Offset, Count),
+    allocator: std.mem.Allocator,
 ) callconv(.C) ?[*]py.PyObject {}
+
+const Offset = usize;
+const Count = u64;
+const allocator = std.heap.c_allocator;

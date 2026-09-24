@@ -773,13 +773,13 @@ pub fn SequenceWithOffset(Offset: type, Count: type) type {
         index_first: Offset,
 
         const Self = @This();
-        const Result = std.mem.Allocator.Error!Self;
+        const AllocSelf = std.mem.Allocator.Error!Self;
 
         fn index_last(self: Self) Offset {
             return @as(Offset, @intCast(self.seq.len)) + self.index_first;
         }
 
-        fn copy(self: Self, allocator: std.mem.Allocator) Result {
+        fn copy(self: Self, allocator: std.mem.Allocator) AllocSelf {
             var buffer = try allocator.alloc(Count, self.seq.len);
             @memcpy(buffer[0..], self.seq);
 
@@ -789,7 +789,7 @@ pub fn SequenceWithOffset(Offset: type, Count: type) type {
             };
         }
 
-        pub fn initSingle(allocator: std.mem.Allocator, pos: Offset, value: Count) Result {
+        pub fn initSingle(allocator: std.mem.Allocator, pos: Offset, value: Count) AllocSelf {
             const buffer = try allocator.alloc(Count, 1);
             @memset(buffer, value);
             return Self{ .index_first = pos, .seq = buffer };
@@ -818,7 +818,7 @@ pub fn SequenceWithOffset(Offset: type, Count: type) type {
             };
         }
 
-        pub fn addValues(self: Self, allocator: std.mem.Allocator, other: Self) Result {
+        pub fn addValues(self: Self, allocator: std.mem.Allocator, other: Self) AllocSelf {
             if (self.seq.len == 0) {
                 return other.copy(allocator);
             }

@@ -198,76 +198,10 @@ const DistributionApi = struct {
     }
 };
 
-export const PyDistributionObject = struct {
+const PyDistributionObject = extern struct {
     obj_base: py.PyVarObject,
     distr: distr.SequenceWithOffset(Offset, Count),
 };
-
-// All functions in this namespace should be exposed to the Python interpreter.
-// const DistributionApi = struct {
-//     const Seq = distr.SequenceWithOffset(usize, u64);
-
-//     /// Convert a Distribution to its raw value sequence and offset.
-//     fn toRaw(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {
-//         var raw_seq: ?*anyopaque = undefined;
-//         if (py.PyArg_Parse(args, "?", &raw_seq) == 0) return null;
-
-//         const seq = pyObjToSeq(Offset, Count, raw_seq, allocator);
-//     }
-
-//     /// Convert a Distribution to its equivalent probability sequence and offset.
-//     fn toProbs(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {}
-
-//     /// Create a Distribution for "rolling no dice".
-//     fn roll0(self: ?*py.PyObject) callconv(.C) ?[*]py.PyObject {}
-
-//     /// Create a Distribution for rolling one die with n sides.
-//     fn roll1dn(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {}
-
-//     /// Create a Distribution for repeating a distribution k times, and summing
-//     /// the result.
-//     fn rollKTimes(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {}
-
-//     /// Create a Distribution for repeating a distribution k + d times, omitting
-//     /// the lowest d values, and summing the remaining result.
-//     fn rollKTimesDropLow(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {}
-
-//     /// Create a Distribution for repeating a distribution k + d times, omitting
-//     /// the highest d values, and summing the remaining result.
-//     fn rollKTimesDropHigh(
-//         self: ?*py.PyObject,
-//         args: ?*py.PyObject,
-//     ) callconv(.C) ?[*]py.PyObject {}
-// };
-
-// fn bytesToSeq(
-//     comptime Offset: type,
-//     comptime Count: type,
-//     pyobj: [*]py.PyObject,
-//     allocator: std.mem.Allocator,
-// ) distr.SequenceWithOffset(Offset, Count) {}
-
-// fn seqToBytes(
-//     comptime Offset: type,
-//     comptime Count: type,
-//     seq: distr.SequenceWithOffset(Offset, Count),
-//     allocator: std.mem.Allocator,
-// ) callconv(.C) ?[*]py.PyObject {}
 
 const Offset = c_longlong;
 const Len = c_ulonglong;
@@ -275,4 +209,5 @@ const Count = c_ulonglong;
 const DiceCount = c_ushort;
 const SignedDiceCount = c_short;
 const CDO = distr.CountDiceOutcomes(DiceCount, Offset, Count);
+// https://docs.python.org/3/c-api/memory.html
 const allocator = std.heap.c_allocator;

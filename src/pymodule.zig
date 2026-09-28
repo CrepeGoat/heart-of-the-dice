@@ -1,9 +1,6 @@
 // https://docs.python.org/3/extending/newtypes_tutorial.html
 
-const py = @cImport({
-    @cDefine("PY_SSIZE_T_CLEAN", {});
-    @cInclude("Python.h");
-});
+const py = @import("py");
 
 const pycompat = @cImport({
     @cInclude("pycompat.h");
@@ -17,7 +14,7 @@ pub export fn PyInit_distr() ?*py.PyObject {
 }
 
 const distrmodule = py.PyModuleDef{
-    .m_base = py.PyModuleDef_HEAD_INIT,
+    .m_base = py.PyVarObject_HEAD_INIT_NULL_0,
     .m_name = "distr",
     .m_doc = "A module for manipulating discrete distributions.",
     .m_size = 0,

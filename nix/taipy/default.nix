@@ -1,30 +1,66 @@
+# https://nixos.org/manual/nixpkgs/stable/#python
+# https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/python.section.md
+
 {
   lib,
   stdenv,
   buildPythonPackage,
-  certifi,
-  chardet,
-  charset-normalizer,
   fetchFromGitHub,
-  idna,
-  pysocks,
-  pytest-mock,
-  pytest-xdist,
   pytestCheckHook,
   setuptools,
-  urllib3,
+
+  # package deps
+  apispec,
+  apispec-webframeworks,
+  boto3,
+  charset-normalizer,
+  cookiecutter,
+  deepdiff,
+  flask,
+  flask-cors,
+  flask-restful,
+  flask-socketio,
+  gevent,
+  gevent-websocket,
+  gitignore-parser,
+  kthread,
+  markdown,
+  marshmallow,
+  networkx,
+  openpyxl,
+  pandas,
+  passlib,
+  pyarrow,
+  pymongo,
+  python-dotenv,
+  pytz,
+  requests,
+  simple-websocket,
+  sqlalchemy,
+  tabulate,
+  toml,
+  twisted,
+  tzlocal,
+  watchdog,
+
+  # optional deps
+  # pyarrow,
+  pyngrok,
+  pyodbc,
+  python-magic,
+  rdp,
 }:
 
 buildPythonPackage rec {
-  pname = "requests";
-  version = "2.33.1";
+  pname = "taipy";
+  version = "4.1.1";
   pyproject = true;
 
   __darwinAllowLocalNetworking = true;
 
   src = fetchFromGitHub {
-    owner = "psf";
-    repo = "requests";
+    owner = "Avaiga";
+    repo = "taipy";
     tag = "v${version}";
     hash = "sha256-cQnCTMmpdkvWwt7RFAIhAfmhVwGVn0Y8Z5Tr6lzDmS8=";
   };
@@ -32,58 +68,63 @@ buildPythonPackage rec {
   build-system = [ setuptools ];
 
   dependencies = [
-    certifi
+    apispec # [ yaml ]
+    apispec-webframeworks
+    boto3
     charset-normalizer
-    idna
-    urllib3
+    cookiecutter
+    deepdiff
+    flask
+    flask-cors
+    flask-restful
+    flask-socketio
+    gevent
+    gevent-websocket
+    gitignore-parser
+    kthread
+    markdown
+    marshmallow
+    networkx
+    openpyxl
+    pandas
+    passlib
+    pyarrow
+    pymongo # [ srv ]
+    python-dotenv
+    pytz
+    requests
+    simple-websocket
+    sqlalchemy
+    tabulate
+    toml
+    twisted
+    tzlocal
+    watchdog
   ];
 
   optional-dependencies = {
-    security = [ ];
-    socks = [ pysocks ];
-    use_chardet_on_py3 = [ chardet ];
+    ngrok = [ pyngrok ];
+    image = [ python-magic ];
+    rdp = [ rdp ];
+    arrow = [ pyarrow ];
+    mssql = [ pyodbc ];
   };
 
   nativeCheckInputs = [
-    pytest-mock
-    pytest-xdist
-    pytestCheckHook
-  ]
-  ++ optional-dependencies.socks;
+    pytestCheckHook # https://nixos.org/manual/nixpkgs/stable/#using-pytestcheckhook
+  ];
 
   disabledTests = [
-    # Disable tests that require network access and use httpbin
-    "requests.api.request"
-    "requests.models.PreparedRequest"
-    "requests.sessions.Session"
-    "requests"
-    "test_redirecting_to_bad_url"
-    "test_requests_are_updated_each_time"
-    "test_should_bypass_proxies_pass_only_hostname"
-    "test_urllib3_pool_connection_closed"
-    "test_urllib3_retries"
-    "test_use_proxy_from_environment"
-    "TestRequests"
-    "TestTimeout"
-  ]
-  ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
-    # Fatal Python error: Aborted
-    "test_basic_response"
-    "test_text_response"
   ];
 
   disabledTestPaths = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
-    # Fatal Python error: Aborted
-    "tests/test_lowlevel.py"
   ];
 
-  pythonImportsCheck = [ "requests" ];
+  # pythonImportsCheck = [ "requests" ];
 
   meta = {
-    description = "HTTP library for Python";
-    homepage = "http://docs.python-requests.org/";
-    changelog = "https://github.com/psf/requests/blob/v${version}/HISTORY.md";
+    description = "A 360° open-source platform from Python pilots to production-ready web apps.";
+    homepage = "https://www.taipy.io/";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ fab ];
   };
 }

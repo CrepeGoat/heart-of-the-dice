@@ -30,7 +30,12 @@
             buildInputs = with pkgs; [
               zig
               python313
-              python313Packages.pip
+              # python313Packages.pip
+              python313Packages.numpy
+              (lib.callPackageWith (pkgs // pkgs.python313Packages) ./nix/taipy/default.nix {
+                kthread = lib.callPackageWith (pkgs // pkgs.python313Packages) ./nix/kthread/default.nix { };
+                rdp = lib.callPackageWith (pkgs // pkgs.python313Packages) ./nix/rdp/default.nix { };
+              })
             ];
           };
         }

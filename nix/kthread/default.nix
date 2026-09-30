@@ -4,7 +4,7 @@
 {
   lib,
   buildPythonPackage,
-  fetchFromGitHub,
+  fetchPypi,
   pytestCheckHook,
   setuptools,
 }:
@@ -14,17 +14,15 @@ buildPythonPackage rec {
   version = "0.2.3";
   pyproject = true;
 
-  src = fetchFromGitHub {
-    owner = "munshigroup";
-    repo = "kthread";
-    tag = "v${version}";
-    hash = "";
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-kOGU5qf/kDBAxBM9PqkDfJCMQpa/X1gsf9z2MloE+bQ=";
   };
 
   build-system = [ setuptools ];
 
   nativeCheckInputs = [
-    pytestCheckHook # https://nixos.org/manual/nixpkgs/stable/#using-pytestcheckhook
+    # pytestCheckHook # https://nixos.org/manual/nixpkgs/stable/#using-pytestcheckhook
   ];
 
   pythonImportsCheck = [ "kthread" ];

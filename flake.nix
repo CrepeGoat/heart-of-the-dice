@@ -29,8 +29,8 @@
           default = pkgs.mkShell {
             buildInputs = with pkgs; [
               zig
-              python313
-              python313Packages.pip
+              python312
+              python312Packages.pip
             ];
           };
         }

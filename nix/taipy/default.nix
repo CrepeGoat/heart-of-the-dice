@@ -3,10 +3,9 @@
 
 {
   lib,
-  stdenv,
   buildPythonPackage,
-  fetchFromGitHub,
-  pytestCheckHook,
+  # fetchFromGitHub,
+  fetchPypi,
   setuptools,
 
   # package deps
@@ -54,15 +53,14 @@
 buildPythonPackage rec {
   pname = "taipy";
   version = "4.1.1";
-  pyproject = true;
+  # pyproject = true;
+  format = "wheel";
 
   __darwinAllowLocalNetworking = true;
 
-  src = fetchFromGitHub {
-    owner = "Avaiga";
-    repo = "taipy";
-    tag = "v${version}";
-    hash = "sha256-cQnCTMmpdkvWwt7RFAIhAfmhVwGVn0Y8Z5Tr6lzDmS8=";
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-rRSFiEp3Ln468P4uaN46jYZGS/BsjQVaLEDxWJEo9yg=";
   };
 
   build-system = [ setuptools ];
@@ -110,17 +108,16 @@ buildPythonPackage rec {
     mssql = [ pyodbc ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook # https://nixos.org/manual/nixpkgs/stable/#using-pytestcheckhook
-  ];
+  # pypi package does not include the tests, but cannot be built with fetchFromGitHub
+  doCheck = false;
+  # nativeCheckInputs = [
+  #   pytestCheckHook # https://nixos.org/manual/nixpkgs/stable/#using-pytestcheckhook
+  # ];
 
-  disabledTests = [
+  pythonImportsCheck = [
+    "taipy.gui.Gui"
+    "taipy.gui.builder"
   ];
-
-  disabledTestPaths = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
-  ];
-
-  # pythonImportsCheck = [ "requests" ];
 
   meta = {
     description = "A 360° open-source platform from Python pilots to production-ready web apps.";

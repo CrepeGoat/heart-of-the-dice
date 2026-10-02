@@ -29,8 +29,8 @@
           default = pkgs.mkShell {
             buildInputs =
               let
-                python = pkgs.python313;
-                pyPkgs = pkgs.python313Packages;
+                python = pkgs.python312;
+                pyPkgs = pkgs.python312Packages;
                 inherit (pkgs.lib) callPackageWith;
               in
               [
@@ -40,7 +40,7 @@
                 pyPkgs.numpy
 
                 (callPackageWith (pyPkgs) ./nix/taipy/default.nix {
-                  inherit (pkgs) lib stdenv fetchFromGitHub;
+                  inherit (pkgs) lib fetchPypi;
                   kthread = callPackageWith (pyPkgs // pkgs) ./nix/kthread/default.nix { };
                   rdp = callPackageWith (pyPkgs // pkgs) ./nix/rdp/default.nix { };
                 })

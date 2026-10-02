@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
         std.Build.LazyPath,
         "pyhpath",
         "The path from which Python.h should be included",
-    ) orelse .{ .cwd_relative = "/usr/local/include" };
+    ) orelse @panic("must provide the include path for Python.h (see `pyhpath` flag)");
 
     const python_h = b.addTranslateC(.{
         .root_source_file = b.path("src/py.h"),

@@ -39,10 +39,11 @@
                 # pyPkgs.pip
                 pyPkgs.numpy
 
-                (callPackageWith (pyPkgs) ./nix/taipy/default.nix {
+                (callPackageWith (pyPkgs) ./nix/taipy.nix {
                   inherit (pkgs) lib fetchPypi;
-                  kthread = callPackageWith (pyPkgs // pkgs) ./nix/kthread/default.nix { };
-                  rdp = callPackageWith (pyPkgs // pkgs) ./nix/rdp/default.nix { };
+                  kthread = callPackageWith (pyPkgs // pkgs) ./nix/kthread.nix { };
+                  rdp = callPackageWith (pyPkgs // pkgs) ./nix/rdp.nix { };
+                  twisted = callPackageWith (pyPkgs // pkgs) ./nix/twisted.nix { };
                 })
               ];
           };
